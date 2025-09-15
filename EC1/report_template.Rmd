@@ -193,13 +193,6 @@ fligner.test(IMC ~ semestre, data = subset(dados, Gender == "F"))
 
 ---
 
-Boa! O problema é que alguns caracteres como **–** (traço longo), **±**, **µ** e afins não estão sendo renderizados no LaTeX.
-A solução é escrever tudo no formato que o LaTeX entende: `\pm`, `\mu`, intervalos com colchetes `[...]` e traços simples.
-
-Aqui está sua seção reescrita com código **antes** dos resultados e todo o texto em formato compatível com LaTeX:
-
----
-
 ## Teste de Hipóteses
 
 Nesta etapa, comparamos as médias de IMC entre os semestres **2016-2** e **2017-2**, separadamente para homens e mulheres.
