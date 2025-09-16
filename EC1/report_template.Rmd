@@ -4,7 +4,7 @@ title: |
   Estudo de Caso 01: Comparação do IMC Médio de Alunos do PPGEE-UFMG
 author:
   - "Bernardo Bacha\\thanks{PPGEE/UFMG — bernardobr@ufmg.br}"
-  - "Autor 2 (placeholder)\\thanks{PPGEE/UFMG — autor2@email.com}"
+  - "Marília Melo\\thanks{PPGEE/UFMG — mariliamacedomelo@email.com}"
   - "Autor 3 (placeholder)\\thanks{PPGEE/UFMG — autor3@email.com}"
 date: "`r format(Sys.Date(), '%d de %B de %Y')`"
 documentclass: article
