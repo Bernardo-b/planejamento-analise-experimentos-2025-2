@@ -6,7 +6,6 @@ author:
   - "Bernardo Bacha\\thanks{PPGEE/UFMG — bernardobr@ufmg.br}"
   - "Autor 2 (placeholder)\\thanks{PPGEE/UFMG — autor2@email.com}"
   - "Autor 3 (placeholder)\\thanks{PPGEE/UFMG — autor3@email.com}"
-  - "Autor 4 (placeholder)\\thanks{PPGEE/UFMG — autor4@email.com}"
 date: "`r format(Sys.Date(), '%d de %B de %Y')`"
 documentclass: article
 output: pdf_document
@@ -17,11 +16,7 @@ geometry: margin=2cm
 
 
 
-
-
-
-
-```{r setup,results='hide',warning=FALSE,echo=FALSE}
+```{r setup, results='hide', message=FALSE, warning=FALSE, echo=FALSE}
 # Opções globais do knitr
 knitr::opts_chunk$set(
   echo = TRUE,
@@ -30,31 +25,33 @@ knitr::opts_chunk$set(
   fig.align = "center"
 )
 
-# Não instalar pacotes durante o Knit.
-# Apenas checar e falhar com mensagem clara (instale no Console antes).
-need <- c("ggplot2", "GGally", "broom")
-miss <- need[!vapply(need, requireNamespace, logical(1), quietly = TRUE)]
+# --- Verificação de Pacotes para Reprodutibilidade ---
 
-if (length(miss)) {
+# 1. Lista correta de todos os pacotes que o script realmente utiliza.
+pacotes_necessarios <- c("ggplot2", "dplyr", "effsize", "pwr")
+
+# 2. Checa quais pacotes da lista não estão instalados.
+pacotes_faltando <- pacotes_necessarios[!vapply(pacotes_necessarios, requireNamespace, logical(1), quietly = TRUE)]
+
+# 3. Se algum pacote estiver faltando, o script para com uma mensagem clara.
+if (length(pacotes_faltando)) {
   stop(
     sprintf(
-      "Pacotes ausentes: %s\nInstale no Console antes de dar Knit, por ex.:\ninstall.packages(c(%s))",
-      paste(miss, collapse = ", "),
-      paste(sprintf('"%s"', miss), collapse = ", ")
+      "Pacotes ausentes: %s\nPor favor, instale no Console antes de compilar o arquivo, por exemplo:\ninstall.packages(c(%s))",
+      paste(pacotes_faltando, collapse = ", "),
+      paste(sprintf('"%s"', pacotes_faltando), collapse = ", ")
     )
   )
 }
 
-# Carregamento (seguro pois já checamos acima)
-library(ggplot2)
-library(GGally)
-library(broom)
+# 4. Carrega todos os pacotes necessários de uma vez.
+# (Isto é seguro, pois a checagem acima garante que todos estão instalados)
+lapply(pacotes_necessarios, library, character.only = TRUE)
 
-# Se você instalou o TinyTeX, isso evita surpresas
+# Verificação opcional do TinyTeX para garantir a geração do PDF
 if (requireNamespace("tinytex", quietly = TRUE)) {
-  tinytex::is_tinytex() # só para forçar a detecção
+  tinytex::is_tinytex()
 }
-
 ```
 
 # I. Descrição do Problema
@@ -151,8 +148,9 @@ ggplot(dados_global, aes(x = IMC, fill = semestre)) +
 
 ### Normalidade
 
+Para verificar se os dados seguem uma distribuição normal, combinamos duas abordagens. Primeiro, fizemos uma análise visual com o gráfico QQ-plot para ver se os pontos se distribuíam como o esperado. Em seguida, para uma confirmação estatística, aplicamos o teste de Shapiro-Wilk, que é um método rigoroso e muito recomendado para amostras pequenas.
+
 ```{r normalidade_iv, fig.width=7, fig.height=4}
-library(ggplot2)
 
 # QQ-plots por semestre x sexo
 ggplot(dados, aes(sample = IMC)) +
@@ -175,13 +173,14 @@ lapply(grupos, function(x) {
 * 2016-2 Masculino: p = 0.1275
 * 2017-2 Masculino: p = 0.6206
 
-**Nota:** o grupo feminino de 2017-2 tem **n = 4**. Com tamanhos tão pequenos, testes de normalidade ficam instáveis e sensíveis a um único valor. O resultado é registrado, mas será complementado com análise não-paramétrica na próxima subseção.
+**Nota:** o grupo feminino de 2017-2 tem **n = 4**. Com tamanhos tão pequenos, testes de normalidade ficam instáveis e sensíveis a um único valor. O resultado é registrado, mas será complementado com análise não-paramétrica na próxima subseção. Portanto, embora o teste de Shapiro-Wilk sugira uma violação da premissa de normalidade, esse resultado deve ser interpretado com cautela devido à baixa amostra. Essa sensibilidade do teste com n=4 reforça a necessidade de complementar a análise com abordagens não-paramétricas ou testes robustos como o de Welch, que é menos sensível a desvios da normalidade.
 
 
 ### Homogeneidade de Variâncias
 
+Para avaliar a premissa de homogeneidade de variâncias, foi utilizado o teste de Fligner-Killeen. A escolha deste teste se justifica por sua robustez a possíveis desvios da normalidade, uma consideração importante, visto que a normalidade da amostra do grupo feminino foi questionada na análise anterior. A hipótese nula do teste é de que as variâncias do IMC são iguais entre os semestres.
+
 ```{r variancias_iv}
-# Fligner–Killeen (robusto à não normalidade) entre semestres, por sexo
 fligner.test(IMC ~ semestre, data = subset(dados, Gender == "M"))
 fligner.test(IMC ~ semestre, data = subset(dados, Gender == "F"))
 ```
@@ -191,52 +190,71 @@ fligner.test(IMC ~ semestre, data = subset(dados, Gender == "F"))
 * Feminino: p = 0.7735
 * Masculino: p = 0.3991
 
+Os resultados não indicaram evidências para rejeitar essa hipótese, com um p-valor de 0.7735 para o grupo masculino e 0.3991 para o feminino. Portanto, conclui-se que as variâncias podem ser consideradas homogêneas entre os semestres para ambos os sexos.
+
 ---
 
 ## Teste de Hipóteses
 
-Nesta etapa, comparamos as médias de IMC entre os semestres **2016-2** e **2017-2**, separadamente para homens e mulheres.
-O teste utilizado foi o **t de Welch para duas amostras independentes**. O nível de significância adotado é **$\alpha = 0{,}05$**.
+Para comparar as médias de IMC entre os semestres **2016-2** e **2017-2**, separadamente para homens e mulheres, o método principal adotado foi o **teste t de Welch para duas amostras independentes**, com um nível de significância de $\alpha = 0{,}05$. A preferência por este teste segue as recomendações da literatura estatística para garantir a robustez da análise. Conforme demonstrado em estudos clássicos como o de Moser e Stevens (1992), a prática de realizar um teste preliminar de variâncias para então decidir qual teste t utilizar pode aumentar a taxa de erro do tipo I. Desta forma, o teste de Welch se apresenta como uma alternativa mais segura. Ainda assim, para fins de uma análise comparativa completa, o teste t de Student (`var.equal = TRUE`) também foi executado para que os resultados de ambos os métodos pudessem ser avaliados.
 
-```{r t_welch}
-# Homens
-t.test(IMC ~ semestre, data = subset(dados, Gender == "M"),
-       var.equal = FALSE, conf.level = 0.95)
+```{r testes_hipoteses}
+# --- Grupo Masculino ---
+print("--- Homens: Teste de Welch (var.equal = FALSE) ---")
+t.test(IMC ~ semestre, data = subset(dados, Gender == "M"), var.equal = FALSE)
 
-# Mulheres
-t.test(IMC ~ semestre, data = subset(dados, Gender == "F"),
-       var.equal = FALSE, conf.level = 0.95)
+print("--- Homens: Teste de Student (var.equal = TRUE) ---")
+t.test(IMC ~ semestre, data = subset(dados, Gender == "M"), var.equal = TRUE)
+
+
+# --- Grupo Feminino ---
+print("--- Mulheres: Teste de Welch (var.equal = FALSE) ---")
+t.test(IMC ~ semestre, data = subset(dados, Gender == "F"), var.equal = FALSE)
+
+print("--- Mulheres: Teste de Student (var.equal = TRUE) ---")
+t.test(IMC ~ semestre, data = subset(dados, Gender == "F"), var.equal = TRUE)
 ```
 
 **Resultados:**
 
-* **Homens:** p = 0.5925, intervalo de confiança 95% = \[-1.79 ; 3.09]. Não houve evidência de diferença significativa entre os semestres. As médias foram 24.94 (2016-2) e 24.29 (2017-2).
-* **Mulheres:** p = 0.0595, intervalo de confiança 95% = \[-0.14 ; 5.41]. A diferença não atingiu significância ao nível de 5%, mas ficou próxima do limiar. As médias foram 21.08 (2016-2) e 18.45 (2017-2).
+A análise dos testes de hipóteses não apontou diferença estatisticamente significativa no IMC médio para nenhum dos grupos ao nível de $\alpha = 0{,}05$. Para o grupo masculino, os resultados do teste de Welch (p = 0.5925) e do teste de Student (p = 0.5923) foram praticamente idênticos, não indicando alteração entre os semestres. Já para o grupo feminino, os p-valores divergiram: o teste de Welch apresentou um resultado marginalmente significativo (p = 0.0595), mais próximo do limiar de significância que o do teste de Student (p = 0.08556). Essa comparação reforça a robustez do teste de Welch que, apesar de não atingir a significância formal, capturou uma tendência mais forte nos dados do grupo feminino.
 
 ---
+## Tamanho do Efeito e Poder Estatístico
 
-## Tamanho do Efeito (Cohen’s d)
+Após a análise de hipóteses, que avalia a significância estatística, a investigação foi aprofundada em duas frentes para uma interpretação completa dos resultados. A primeira foi quantificar a magnitude prática da diferença observada, o que é feito através do cálculo do **tamanho do efeito** (utilizando o g de Hedges, por ser mais preciso para amostras pequenas conforme demonstrado por Hedges e Olkin (1985)). A segunda foi avaliar a capacidade do estudo em detectar um efeito, caso ele realmente exista, o que é medido pela análise de **poder estatístico**. A análise conjunta dessas duas métricas é o que permite contextualizar os p-valores e entender cenários complexos, como um efeito de grande magnitude que não atinge significância estatística devido ao baixo poder do teste.
 
-Além do p-valor, avaliamos a magnitude da diferença usando **Cohen’s d** (Hedges’ g com correção para amostras pequenas).
-
-```{r cohens_d}
+```{r efeito_e_poder}
+# Carregar pacotes necessários
+# Se não tiver instalado, rode no console: install.packages(c("effsize", "pwr"))
 library(effsize)
+library(pwr)
 
-# Homens
+# ---- Tamanho do Efeito (g de Hedges) ----
+
+print("--- Tamanho do Efeito | Homens ---")
 cohen.d(IMC ~ semestre, data = subset(dados, Gender == "M"),
         hedges.correction = TRUE)
 
-# Mulheres
+print("--- Tamanho do Efeito | Mulheres ---")
 cohen.d(IMC ~ semestre, data = subset(dados, Gender == "F"),
         hedges.correction = TRUE)
+
+
+# ---- Análise de Poder Estatístico ----
+
+# Poder para o grupo MASCULINO (n1=21, n2=21, d=0.16)
+print("--- Poder Estatístico | Homens ---")
+pwr.t2n.test(n1 = 21, n2 = 21, d = 0.16, sig.level = 0.05, alternative = "two.sided")
+
+# Poder para o grupo FEMININO (n1=7, n2=4, d=1.11)
+print("--- Poder Estatístico | Mulheres ---")
+pwr.t2n.test(n1 = 7, n2 = 4, d = 1.11, sig.level = 0.05, alternative = "two.sided")
 ```
 
 **Resultados:**
 
-* **Homens:** g = 0.16 (intervalo \[-0.45 ; 0.78]) → efeito desprezível.
-* **Mulheres:** g = 1.11 (intervalo \[-0.28 ; 2.49]) → efeito grande, mas com intervalo de confiança muito amplo devido ao tamanho amostral reduzido.
-
-
+A análise do tamanho do efeito e do poder estatístico revela cenários distintos para os dois grupos. Para o grupo masculino, foi observado um efeito de magnitude desprezível (g = 0.16), com um poder estatístico de apenas 8% para detectá-lo, o que é consistente com o resultado não-significativo do teste t. Em contraste, para o grupo feminino, a magnitude do efeito foi classificada como grande (g = 1.11). No entanto, a análise de poder indicou que o estudo tinha apenas 35% de chance de detectar um efeito dessa magnitude como estatisticamente significativo. Isso explica o resultado marginal do teste t (p = 0.0595): embora a diferença observada seja grande na prática, o estudo não teve poder suficiente para confirmá-la estatisticamente devido à amostra reduzida.
 
 # V. Discussão e Conclusões
 
@@ -250,4 +268,6 @@ Espaço reservado para:
 
 # VI. Referências
 
-Serão incluídas referências às notas de aula e bibliografia principal.
+MOSER, B. K.; STEVENS, G. R. Homogeneity of Variance in the Two-Sample Means Test. **The American Statistician**, v. 46, n. 1, p. 19-22, fev. 1992.
+
+HEDGES, Larry V.; OLKIN, Ingram. **Statistical methods for meta-analysis**. Orlando: Academic Press, 1985.
