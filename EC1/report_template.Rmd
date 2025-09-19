@@ -71,7 +71,7 @@ Além da análise geral, também será feita a comparação separada por sexo (m
   - H1: $\mu_{2016-2} \neq \mu_{2017-2}$
 
 # III. Desenvolvimento
-## Importação e Organização dos Dados
+## a. Importação e Organização dos Dados
 
 Primeiro, importamos os dados dos dois semestres (2016-2 e 2017-2), ajustamos o formato, filtramos apenas a pós-graduação e calculamos o IMC de cada estudante. Depois unimos tudo em um único dataframe.
 
@@ -104,7 +104,7 @@ table(dados$semestre, dados$Gender)
 ```
 
 
-## Análise Exploratória
+## b. Análise Exploratória
 
 Agora vamos explorar os dados. O objetivo é entender como está a distribuição do IMC entre os alunos, comparando os dois semestres e separando por sexo. Para complementar, também apresentamos os resultados no grupo total.
 
@@ -144,9 +144,9 @@ ggplot(dados_global, aes(x = IMC, fill = semestre)) +
 
 # IV. Análise Estatística
 
-## Validação das Premissas
+## a. Validação das Premissas
 
-### Normalidade
+### Normalidade - Teste de Shapiro-Wilk
 
 Para verificar se os dados seguem uma distribuição normal, combinamos duas abordagens. Primeiro, fizemos uma análise visual com o gráfico QQ-plot para ver se os pontos se distribuíam como o esperado. Em seguida, para uma confirmação estatística, aplicamos o teste de Shapiro-Wilk, que é um método rigoroso e muito recomendado para amostras pequenas.
 
@@ -176,7 +176,7 @@ lapply(grupos, function(x) {
 **Nota:** o grupo feminino de 2017-2 tem **n = 4**. Com tamanhos tão pequenos, testes de normalidade ficam instáveis e sensíveis a um único valor. O resultado é registrado, mas será complementado com análise não-paramétrica na próxima subseção. Portanto, embora o teste de Shapiro-Wilk sugira uma violação da premissa de normalidade, esse resultado deve ser interpretado com cautela devido à baixa amostra. Essa sensibilidade do teste com n=4 reforça a necessidade de complementar a análise com abordagens não-paramétricas ou testes robustos como o de Welch, que é menos sensível a desvios da normalidade.
 
 
-### Homogeneidade de Variâncias
+### b. Homogeneidade de Variâncias - Teste de Fligner-Killeen
 
 Para avaliar a premissa de homogeneidade de variâncias, foi utilizado o teste de Fligner-Killeen. A escolha deste teste se justifica por sua robustez a possíveis desvios da normalidade, uma consideração importante, visto que a normalidade da amostra do grupo feminino foi questionada na análise anterior. A hipótese nula do teste é de que as variâncias do IMC são iguais entre os semestres.
 
@@ -194,7 +194,7 @@ Os resultados não indicaram evidências para rejeitar essa hipótese, com um p-
 
 ---
 
-## Teste de Hipóteses - Welch e Student
+## Teste de Hipóteses - Testes t - Welch e Student
 
 Para comparar as médias de IMC entre os semestres **2016-2** e **2017-2**, separadamente para homens e mulheres, o método principal adotado foi o **teste t de Welch para duas amostras independentes**, com um nível de significância de $\alpha = 0{,}05$. A preferência por este teste segue as recomendações da literatura estatística para garantir a robustez da análise. Conforme demonstrado em estudos clássicos como o de Moser e Stevens (1992), a prática de realizar um teste preliminar de variâncias para então decidir qual teste t utilizar pode aumentar a taxa de erro do tipo I. Desta forma, o teste de Welch se apresenta como uma alternativa mais segura. Ainda assim, para fins de uma análise comparativa completa, o teste t de Student (`var.equal = TRUE`) também foi executado para que os resultados de ambos os métodos pudessem ser avaliados.
 
