@@ -144,9 +144,9 @@ ggplot(dados_global, aes(x = IMC, fill = semestre)) +
 
 # IV. Análise Estatística
 
-## a. Validação das Premissas
+## Validação das Premissas
 
-### Normalidade - Teste de Shapiro-Wilk
+### a. Normalidade - Teste de Shapiro-Wilk
 
 Para verificar se os dados seguem uma distribuição normal, combinamos duas abordagens. Primeiro, fizemos uma análise visual com o gráfico QQ-plot para ver se os pontos se distribuíam como o esperado. Em seguida, para uma confirmação estatística, aplicamos o teste de Shapiro-Wilk, que é um método rigoroso e muito recomendado para amostras pequenas.
 
