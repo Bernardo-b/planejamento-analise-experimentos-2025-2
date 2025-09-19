@@ -193,7 +193,7 @@ fligner.test(IMC ~ semestre, data = subset(dados, Gender == "F"))
 Os resultados não indicaram evidências para rejeitar essa hipótese, com um p-valor de 0.7735 para o grupo masculino e 0.3991 para o feminino. Portanto, conclui-se que as variâncias podem ser consideradas homogêneas entre os semestres para ambos os sexos.
 
 
-## c. Teste de Hipóteses - Testes t - Welch e Student
+### c. Teste de Hipóteses - Testes t - Welch e Student
 
 Para comparar as médias de IMC entre os semestres **2016-2** e **2017-2**, separadamente para homens e mulheres, o método principal adotado foi o **teste t de Welch para duas amostras independentes**, com um nível de significância de $\alpha = 0{,}05$. A preferência por este teste segue as recomendações da literatura estatística para garantir a robustez da análise. Conforme demonstrado em estudos clássicos como o de Moser e Stevens (1992), a prática de realizar um teste preliminar de variâncias para então decidir qual teste t utilizar pode aumentar a taxa de erro do tipo I. Desta forma, o teste de Welch se apresenta como uma alternativa mais segura. Ainda assim, para fins de uma análise comparativa completa, o teste t de Student (`var.equal = TRUE`) também foi executado para que os resultados de ambos os métodos pudessem ser avaliados.
 
@@ -220,7 +220,7 @@ t.test(IMC ~ semestre, data = subset(dados, Gender == "F"), var.equal = TRUE)
 A análise dos testes de hipóteses não apontou diferença estatisticamente significativa no IMC médio para nenhum dos grupos ao nível de $\alpha = 0{,}05$. Para o grupo masculino, os resultados do teste de Welch (p = 0.5925) e do teste de Student (p = 0.5923) foram praticamente idênticos, não indicando alteração entre os semestres. Já para o grupo feminino, os p-valores divergiram: o teste de Welch apresentou um resultado marginalmente significativo (p = 0.0595), mais próximo do limiar de significância que o do teste de Student (p = 0.08556). Essa comparação reforça a robustez do teste de Welch que, apesar de não atingir a significância formal, capturou uma tendência mais forte nos dados do grupo feminino.
 
 ---
-## d. Tamanho do Efeito e Poder Estatístico
+### d. Tamanho do Efeito e Poder Estatístico
 
 Após a análise de hipóteses, que avalia a significância estatística, a investigação foi aprofundada em duas frentes para uma interpretação completa dos resultados. A primeira foi quantificar a magnitude prática da diferença observada, o que é feito através do cálculo do **tamanho do efeito** (utilizando o g de Hedges, por ser mais preciso para amostras pequenas conforme demonstrado por Hedges e Olkin (1985)). A segunda foi avaliar a capacidade do estudo em detectar um efeito, caso ele realmente exista, o que é medido pela análise de **poder estatístico**. A análise conjunta dessas duas métricas é o que permite contextualizar os p-valores e entender cenários complexos, como um efeito de grande magnitude que não atinge significância estatística devido ao baixo poder do teste.
 
