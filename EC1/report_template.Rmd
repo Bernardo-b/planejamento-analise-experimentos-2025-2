@@ -250,6 +250,15 @@ pwr.t2n.test(n1 = 21, n2 = 21, d = 0.16, sig.level = 0.05, alternative = "two.si
 # Poder para o grupo FEMININO (n1=7, n2=4, d=1.11)
 print("--- Poder Estatístico | Mulheres ---")
 pwr.t2n.test(n1 = 7, n2 = 4, d = 1.11, sig.level = 0.05, alternative = "two.sided")
+
+# ---- Cálculo de amostra para potência de 80%
+
+power.t.test(power = 0.8,    # potência desejada
+             delta = 0.5,    # tamanho do efeito esperado (diferença entre médias)
+             sd = 1,         # desvio padrão estimado
+             sig.level = 0.05, 
+             type = "two.sample", # tipo do teste
+             alternative = "two.sided") # bilateral
 ```
 
 **Resultados - Tamanho do Efeito e Poder Estatístico:**
@@ -260,7 +269,7 @@ A análise do tamanho do efeito e do poder estatístico revela cenários distint
 
 Espaço reservado para:
 
-* Interpretação dos resultados;
+* Tanto para amostras menores (gênero feminino), quanto para amostras maiores (genêro masculino), os testes apresentaram baixa potência, inferior a 80%, o que sugere que: I - seriam fracos para detectar diferenças reais II - possuem baixa confiabilidade de rejeitar corretamente a hipótese nula. Isso reforça a 
 * Conclusões sobre diferenças de IMC entre semestres e sexos;
 * Limitações do estudo.
 
