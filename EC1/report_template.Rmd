@@ -5,7 +5,7 @@ title: |
 author:
   - "Bernardo Bacha\\thanks{PPGEE/UFMG — bernardobr@ufmg.br}"
   - "Marília Melo\\thanks{PPGEE/UFMG — mariliamacedomelo@email.com}"
-  - "Autor 3 (placeholder)\\thanks{PPGEE/UFMG — autor3@email.com}"
+  - "Gustavo Reis\\thanks{PPGEE/UFMG — autor3@email.com}"
 date: "`r format(Sys.Date(), '%d de %B de %Y')`"
 documentclass: article
 output: pdf_document
