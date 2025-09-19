@@ -269,7 +269,7 @@ A análise do tamanho do efeito e do poder estatístico revela cenários distint
 
 Espaço reservado para:
 
-* Tanto para amostras menores (gênero feminino), quanto para amostras maiores (genêro masculino), os testes apresentaram baixa potência, inferior a 80%, o que sugere que: I - seriam fracos para detectar diferenças reais II - possuem baixa confiabilidade de rejeitar corretamente a hipótese nula. Isso reforça a 
+* Tanto para amostras menores (gênero feminino), quanto para amostras maiores (genêro masculino), os testes apresentaram baixa potência, inferior a 80%, o que sugere que seriam fracos para detectar diferenças reais e consequentemente possuem baixa confiabilidade de rejeitar corretamente a hipótese nula. Isso reforça a necessidade de cada grupo possuir ao menos 64 amostras. 
 * Conclusões sobre diferenças de IMC entre semestres e sexos;
 * Limitações do estudo.
 
