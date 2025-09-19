@@ -166,7 +166,7 @@ lapply(grupos, function(x) {
 })
 ```
 
-**Resultados (Shapiro–Wilk):**
+**Resultados - Shapiro–Wilk:**
 
 * 2016-2 Feminino: p = 0.4674
 * 2017-2 Feminino: p = 0.0366
@@ -185,7 +185,7 @@ fligner.test(IMC ~ semestre, data = subset(dados, Gender == "M"))
 fligner.test(IMC ~ semestre, data = subset(dados, Gender == "F"))
 ```
 
-**Resultados (Fligner–Killeen):**
+**Resultados - Fligner–Killeen:**
 
 * Feminino: p = 0.7735
 * Masculino: p = 0.3991
@@ -194,7 +194,7 @@ Os resultados não indicaram evidências para rejeitar essa hipótese, com um p-
 
 ---
 
-## Teste de Hipóteses
+## Teste de Hipóteses - Welch e Student
 
 Para comparar as médias de IMC entre os semestres **2016-2** e **2017-2**, separadamente para homens e mulheres, o método principal adotado foi o **teste t de Welch para duas amostras independentes**, com um nível de significância de $\alpha = 0{,}05$. A preferência por este teste segue as recomendações da literatura estatística para garantir a robustez da análise. Conforme demonstrado em estudos clássicos como o de Moser e Stevens (1992), a prática de realizar um teste preliminar de variâncias para então decidir qual teste t utilizar pode aumentar a taxa de erro do tipo I. Desta forma, o teste de Welch se apresenta como uma alternativa mais segura. Ainda assim, para fins de uma análise comparativa completa, o teste t de Student (`var.equal = TRUE`) também foi executado para que os resultados de ambos os métodos pudessem ser avaliados.
 
@@ -215,7 +215,8 @@ print("--- Mulheres: Teste de Student (var.equal = TRUE) ---")
 t.test(IMC ~ semestre, data = subset(dados, Gender == "F"), var.equal = TRUE)
 ```
 
-**Resultados:**
+
+**Resultados - Testes de hipóteses:**
 
 A análise dos testes de hipóteses não apontou diferença estatisticamente significativa no IMC médio para nenhum dos grupos ao nível de $\alpha = 0{,}05$. Para o grupo masculino, os resultados do teste de Welch (p = 0.5925) e do teste de Student (p = 0.5923) foram praticamente idênticos, não indicando alteração entre os semestres. Já para o grupo feminino, os p-valores divergiram: o teste de Welch apresentou um resultado marginalmente significativo (p = 0.0595), mais próximo do limiar de significância que o do teste de Student (p = 0.08556). Essa comparação reforça a robustez do teste de Welch que, apesar de não atingir a significância formal, capturou uma tendência mais forte nos dados do grupo feminino.
 
@@ -252,7 +253,7 @@ print("--- Poder Estatístico | Mulheres ---")
 pwr.t2n.test(n1 = 7, n2 = 4, d = 1.11, sig.level = 0.05, alternative = "two.sided")
 ```
 
-**Resultados:**
+**Resultados - Tamanho do Efeito e Poder Estatístico:**
 
 A análise do tamanho do efeito e do poder estatístico revela cenários distintos para os dois grupos. Para o grupo masculino, foi observado um efeito de magnitude desprezível (g = 0.16), com um poder estatístico de apenas 8% para detectá-lo, o que é consistente com o resultado não-significativo do teste t. Em contraste, para o grupo feminino, a magnitude do efeito foi classificada como grande (g = 1.11). No entanto, a análise de poder indicou que o estudo tinha apenas 35% de chance de detectar um efeito dessa magnitude como estatisticamente significativo. Isso explica o resultado marginal do teste t (p = 0.0595): embora a diferença observada seja grande na prática, o estudo não teve poder suficiente para confirmá-la estatisticamente devido à amostra reduzida.
 
