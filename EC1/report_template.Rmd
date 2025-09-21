@@ -56,12 +56,12 @@ if (requireNamespace("tinytex", quietly = TRUE)) {
 
 # I. Descrição do Problema
 
-Este estudo busca comparar o Índice de Massa Corporal (IMC) médio dos alunos de Pós Graduação em Engenharia Elétrica da UFMG entre os semestres **2016-2** e **2017-2**, reservadas as possibilidades de imprecisão que o índice pode carregar (Nordqvist, 2022), para comparar o estilo de vida dos alunos.    
+Este estudo busca comparar o estilo de vida dos alunos de Pós Graduação em Engenharia Elétrica da UFMG, utilizando como valor proxy o Índice de Massa Corporal (IMC) médio dos alunos dos semestres **2016-2** e **2017-2**, reservadas as possibilidades de imprecisão que o índice pode carregar (Nordqvist, 2022).    
 Além da análise geral, também será feita a comparação separada por sexo (masculino e feminino).  
 
- 
-
 # II. Desenho Experimental
+
+O desenho deste estudo de caso é baseado em dados observacionais retrospectivos de peso, altura e gênero da população de interesse. Para tanto, os dados foram filtrados a partir de dois arquivos diferentes e ajustados em um único dataframe, rejeitando demais informações dos alunos que não foram consideradas, tais como matrícula e idade do aluno. A partir destes dados é obtida a variável resposta do estudo e setadas a hipóteses nula (H0) e hipótese alternativa (H1) da análise estatística. 
 
 - **População de interesse:** alunos do PPGEE/UFMG.  
 - **Variável resposta:** IMC = Peso / Altura².  
@@ -73,7 +73,7 @@ Além da análise geral, também será feita a comparação separada por sexo (m
 # III. Desenvolvimento
 ## a. Importação e Organização dos Dados
 
-Primeiro, importamos os dados dos dois semestres (2016-2 e 2017-2), ajustamos o formato, filtramos apenas a pós-graduação e calculamos o IMC de cada estudante. Depois unimos tudo em um único dataframe.
+Primeiro, foram importados os dados dos dois semestres (2016-2 e 2017-2), ajustamos o formato, filtramos apenas os dados de alunos da pós-graduação e calculamos o IMC de cada estudante. Depois unimos tudo em um único dataframe.
 
 ```{r loaddata}
 library(dplyr)
@@ -106,7 +106,7 @@ table(dados$semestre, dados$Gender)
 
 ## b. Análise Exploratória
 
-Agora vamos explorar os dados. O objetivo é entender como está a distribuição do IMC entre os alunos, comparando os dois semestres e separando por sexo. Para complementar, também apresentamos os resultados no grupo total.
+De posse dos dados da variável resposta, busca-se entender como está a distribuição do IMC entre os alunos, comparando os dois semestres e separando por sexo. Para complementar, também apresentamos os resultados no grupo total.
 
 ### Boxplots
 
@@ -266,7 +266,6 @@ power.t.test(power = 0.8,    # potência desejada
 A análise do tamanho do efeito e do poder estatístico revela cenários distintos para os dois grupos. Para o grupo masculino, foi observado um efeito de magnitude desprezível (g = 0.16), com um poder estatístico de apenas 8% para detectá-lo, o que é consistente com o resultado não-significativo do teste t. Em contraste, para o grupo feminino, a magnitude do efeito foi classificada como grande (g = 1.11). No entanto, a análise de poder indicou que o estudo tinha apenas 35% de chance de detectar um efeito dessa magnitude como estatisticamente significativo. Isso explica o resultado marginal do teste t (p = 0.0595): embora a diferença observada seja grande na prática, o estudo não teve poder suficiente para confirmá-la estatisticamente devido à amostra reduzida.
 
 # V. Discussão e Conclusões
-
 
 * Tanto para amostras menores (gênero feminino), quanto para amostras maiores (genêro masculino), os testes apresentaram baixa potência, inferior a 80%, o que sugere que seriam fracos para detectar diferenças reais e consequentemente possuem baixa confiabilidade de rejeitar corretamente a hipótese nula. Para testes de potência superior a 80%, cada grupo deveria possuir ao menos 64 amostras. 
 * Conclusões sobre diferenças de IMC entre semestres e sexos;
