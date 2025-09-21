@@ -3,9 +3,9 @@ title: |
   EEE933 - Planejamento e Análise de Experimentos  
   Estudo de Caso 01: Comparação do IMC Médio de Alunos do PPGEE-UFMG
 author:
-  - "Bernardo Bacha\\thanks{PPGEE/UFMG — bernardobr@ufmg.br}"
-  - "Marília Melo\\thanks{PPGEE/UFMG — mariliamacedomelo@email.com}"
-  - "Gustavo Reis\\thanks{PPGEE/UFMG — autor3@email.com}"
+  - "Bernardo Bacha\\thanks{PPGEE/UFMG — Relator do experimento - bernardobr@ufmg.br}"
+  - "Marília Melo\\thanks{PPGEE/UFMG — Verificador - mariliamacedomelo@gmail.com}"
+  - "Gustavo Reis\\thanks{PPGEE/UFMG — Revisor - augustogustavo94@gmail.com}"
 date: "`r format(Sys.Date(), '%d de %B de %Y')`"
 documentclass: article
 output: pdf_document
