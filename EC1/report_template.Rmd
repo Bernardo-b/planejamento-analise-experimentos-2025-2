@@ -61,7 +61,7 @@ Além da análise geral, também será feita a comparação separada por sexo (m
 
 # II. Desenho Experimental
 
-O desenho deste estudo de caso é baseado em dados observacionais retrospectivos de peso, altura e gênero da população de interesse. Para tanto, os dados foram filtrados a partir de dois arquivos diferentes e ajustados em um único dataframe, rejeitando demais informações dos alunos que não foram consideradas, tais como matrícula e idade do aluno. A partir destes dados é obtida a variável resposta do estudo e setadas a hipóteses nula (H0) e hipótese alternativa (H1) da análise estatística. 
+O desenho deste estudo de caso é baseado em dados observacionais retrospectivos de peso, altura e gênero da população de interesse. Para tanto, os dados foram filtrados a partir de dois arquivos diferentes e ajustados, rejeitando demais informações dos alunos que não foram consideradas, tais como matrícula e idade do aluno. A partir destes dados é obtida a variável resposta do estudo e setadas a hipóteses nula (H0) e hipótese alternativa (H1) da análise estatística. 
 
 - **População de interesse:** alunos do PPGEE/UFMG.  
 - **Variável resposta:** IMC = Peso / Altura².  
