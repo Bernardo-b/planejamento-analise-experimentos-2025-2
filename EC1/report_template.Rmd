@@ -267,10 +267,8 @@ A análise do tamanho do efeito e do poder estatístico revela cenários distint
 
 # V. Discussão e Conclusões
 
-* Tanto para amostras menores (gênero feminino), quanto para amostras maiores (genêro masculino), os testes apresentaram baixa potência, inferior a 80%, o que sugere que seriam fracos para detectar diferenças reais e consequentemente possuem baixa confiabilidade de rejeitar corretamente a hipótese nula. Para testes de potência superior a 80%, cada grupo deveria possuir ao menos 64 amostras. 
-* Conclusões sobre diferenças de IMC entre semestres e sexos;
-* Limitações do estudo.
-
+* Ao analisar estatisticamente o grupo completo, não observou-se diferença significativa no IMC entre os semestres avaliados. Notou-se também que unir os dois gêneros em um único grupo poderia levar a uma inferência incorreta. Já a análise estratificada trouxe à tona um problema que antes estava oculto: a falta de dados para a categoria feminina em 2017: após realizada a separação por gêneros, a categoria feminina em 2017 apresentou déficit de amostras, causando prejuízo ao processo de inferência estatística. 
+* Após a estratificação por gênero, tanto para as amostras menores (gênero feminino), quanto para amostras maiores (genêro masculino), os testes apresentaram baixa potência, inferior a 80%, o que sugere que seriam fracos para detectar diferenças reais e consequentemente possuem baixa confiabilidade de rejeitar corretamente a hipótese nula. Em futuras análises, para testes de potência superior a 80%, seria necessária uma amostragem mais robusta, com grupos de ao menos 64 amostras. 
  
 
 # VI. Referências
