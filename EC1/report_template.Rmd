@@ -56,7 +56,7 @@ if (requireNamespace("tinytex", quietly = TRUE)) {
 
 # I. Descrição do Problema
 
-Este estudo busca comparar o estilo de vida dos alunos de Pós Graduação em Engenharia Elétrica da UFMG, utilizando como valor proxy o Índice de Massa Corporal (IMC) médio dos alunos dos semestres **2016-2** e **2017-2**, reservadas as possibilidades de imprecisão que o índice pode carregar (Nordqvist, 2022).    
+Este estudo busca comparar o estilo de vida de alunos de Pós Graduação em Engenharia Elétrica da UFMG, utilizando como valor proxy o Índice de Massa Corporal (IMC) médio dos alunos dos semestres **2016-2** e **2017-2**, reservadas as possibilidades de imprecisão que o índice pode carregar (Nordqvist, 2022).    
 Além da análise geral, também será feita a comparação separada por sexo (masculino e feminino).  
 
 # II. Desenho Experimental
