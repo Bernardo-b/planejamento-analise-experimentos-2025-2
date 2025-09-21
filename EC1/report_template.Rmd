@@ -56,7 +56,7 @@ if (requireNamespace("tinytex", quietly = TRUE)) {
 
 # I. Descrição do Problema
 
-Este estudo busca comparar o IMC médio dos alunos do PPGEE/UFMG entre os semestres **2016-2** e **2017-2**.  
+Este estudo busca comparar o Índice de Massa Corporal (IMC) médio dos alunos de Pós Graduação em Engenharia Elétrica da UFMG entre os semestres **2016-2** e **2017-2**, reservadas as possibilidades de imprecisão que o índice pode carregar (Nordqvist, 2022), para comparar o estilo de vida dos alunos.    
 Além da análise geral, também será feita a comparação separada por sexo (masculino e feminino).  
 
  
@@ -276,8 +276,8 @@ A análise do tamanho do efeito e do poder estatístico revela cenários distint
 
 # VI. Referências
 
+Why BMI is inaccurate and misleading. Christian Nordqvist, Medical News Today, 2022. Disponível em: https://www.medicalnewstoday.com/articles/265215. Acesso em: 18 set. 2025.
+
 MOSER, B. K.; STEVENS, G. R. Homogeneity of Variance in the Two-Sample Means Test. **The American Statistician**, v. 46, n. 1, p. 19-22, fev. 1992.
 
 HEDGES, Larry V.; OLKIN, Ingram. **Statistical methods for meta-analysis**. Orlando: Academic Press, 1985.
-
-Why BMI is inaccurate and misleading. Christian Nordqvist, Medical News Today, 2022. Disponível em: https://www.medicalnewstoday.com/articles/265215. Acesso em: 18 set. 2025.
