@@ -11,6 +11,9 @@ documentclass: article
 output: pdf_document
 fontsize: 10pt
 geometry: margin=2cm
+header-includes:          
+  - \usepackage{fvextra}
+  - \DefineVerbatimEnvironment{verbatim}{Verbatim}{breaklines, commandchars=\\\{\}}
 ---
 
 
@@ -79,8 +82,8 @@ Primeiro, foram importados os dados dos dois semestres (2016-2 e 2017-2), ajusta
 library(dplyr)
 
 # Ler os dados
-df_2017 <- read.csv("data/CS01_20172.csv", sep = ";")
-df_2016 <- read.csv("data/imc_20162.csv")
+df_2017 <- read.csv("CS01_20172.csv", sep = ";")
+df_2016 <- read.csv("imc_20162.csv")
 
 # Ajustar e calcular IMC
 df_2017 <- df_2017 %>%
@@ -187,8 +190,8 @@ fligner.test(IMC ~ semestre, data = subset(dados, Gender == "F"))
 
 **Resultados - Fligner–Killeen:**
 
-* Feminino: p = 0.7735
-* Masculino: p = 0.3991
+* Masculino: p = 0.7735
+* Feminino: p = 0.3991
 
 Os resultados não indicaram evidências para rejeitar essa hipótese, com um p-valor de 0.7735 para o grupo masculino e 0.3991 para o feminino. Portanto, conclui-se que as variâncias podem ser consideradas homogêneas entre os semestres para ambos os sexos.
 
