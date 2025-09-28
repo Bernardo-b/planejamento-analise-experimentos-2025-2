@@ -1,7 +1,7 @@
 ---
 title: |
   EEE933 - Planejamento e Análise de Experimentos  
-  Estudo de Caso 01: Comparação do IMC Médio de Alunos do PPGEE-UFMG
+  Estudo de Caso 02: Buscando investimentos de maior rentabilidade
 author:
   - "Bernardo Bacha\\thanks{PPGEE/UFMG — Relator do experimento - bernardobr@ufmg.br}"
   - "Marília Melo\\thanks{PPGEE/UFMG — Verificador - mariliamacedomelo@gmail.com}"
