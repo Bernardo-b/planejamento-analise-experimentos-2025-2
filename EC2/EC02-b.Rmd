@@ -1,0 +1,344 @@
+---
+title: "EEE933: Estudo de Caso 02 - Avaliação e comparação do retorno médio de ações"
+output:
+  pdf_document:
+    fig_caption: true
+  html_document:
+    df_print: paged
+  word_document: default
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+\begin{center}
+\begin{tabular}{ccc}
+\textbf{Bernardo Bacha} & \textbf{Gustavo Reis} & \textbf{Marília Melo} \\
+\textnormal{bernardobr@ufmg.br} & \textnormal{augustogustavo94@gmail.com} & \textnormal{mariliamacedomelo@gmail.com} \\
+\end{tabular}
+\end{center}
+
+
+
+
+
+------------------------------------------------------------------------
+
+## Introdução
+
+O mercado de ações representa uma das principais vias para a construção de patrimônio, mas seu ambiente é marcado pela volatilidade. O dilema fundamental para qualquer investidor reside no balanço entre risco e retorno: a busca por rentabilidades elevadas geralmente implica a exposição a maiores incertezas. Nesse contexto, as estratégias variam, indo desde a diversificação do portfólio para diluir riscos até a concentração de capital em poucos ativos, uma tática que visa amplificar os ganhos potenciais.
+
+Este estudo aborda justamente um cenário de investimento concentrado. Tal estratégia, caracterizada pela alocação de todo o capital em um único ativo, é adotada quando há forte convicção sobre o desempenho de curto prazo de uma empresa. O problema em questão envolve um investidor que, após uma análise prévia, filtrou suas opções para cinco ações candidatas. Ele agora enfrenta a decisão de escolher apenas uma delas para investir, com o objetivo de maximizar seu retorno financeiro já no próximo mês.
+
+Uma decisão de tamanha relevância exige uma abordagem que transcenda a intuição. A análise de dados históricos, embora não preveja o futuro, oferece um fundamento quantitativo para a escolha, revelando o comportamento passado de um ativo, sua rentabilidade média e sua volatilidade. Este trabalho adota essa premissa, utilizando como base o histórico de preços de fechamento das cinco ações candidatas ao longo dos últimos 36 meses para extrair informações que possam guiar a decisão do investidor.
+
+Para converter essa análise de dados em uma recomendação concreta, o estudo emprega métodos estatísticos formais. O objetivo é utilizar a Análise de Variância (ANOVA) para determinar se existem diferenças significativas entre os retornos médios mensais das ações. Para garantir a robustez dos resultados, o teste busca atingir um nível de significância de $\alpha = 0.05$ e um poder estatístico de 80%. Caso a hipótese de igualdade entre as médias seja rejeitada, análises subsequentes serão conduzidas para identificar a ação de maior potencial e, assim, oferecer um suporte empírico à decisão do investidor.
+
+## Projeto Experimental
+
+O objetivo deste estudo é encontrar a ação de maior potencial de rentabilidade dentre cinco ações diferentes da bolsa de valores, a partir de dados históricos do desempenho de tais ações nos últimos 36 meses. Para realizar a comparação, adota-se o **modelo de efeitos**, que descreve o retorno de cada ação como a soma de uma média global ($\mu$) e um efeito específico ($\tau_i$) associado a cada ação. Neste modelo, o termo $\tau_i$ representa o desvio da rentabilidade média da ação *i* em relação à rentabilidade média de todas as ações consideradas.
+
+O estudo, portanto, inicia com as seguintes hipóteses estatísticas:
+
+$$
+\begin{cases} 
+H_0: \tau_i = 0, \forall i \in \{1, 2, \dots, a\} \\ H_1: \exists \, \tau_i \neq 0
+\end{cases}
+$$
+
+A **hipótese nula ($H_0$)** postula que o efeito específico de cada ação é nulo. Em termos práticos, isso significa que não há diferença significativa entre as rentabilidades médias das ações, ou seja, a média de cada uma delas é igual à média global ($\mu_1 = \mu_2 = ... = \mu_a = \mu$). Por outro lado, a **hipótese alternativa ($H_1$)** sugere que o efeito de pelo menos uma ação é diferente de zero, indicando que sua rentabilidade média se desvia das demais. Caso a hipótese nula seja rejeitada, realiza-se uma comparação múltipla para identificar a ação que possuiu o maior potencial de retorno mensal para o investidor.
+
+## Análise Exploratória de Dados
+
+Calcula-se o ganho de cada ação mês a mês, considerando que o preço de
+abertura de um dado mês é idêntico ao preço de fechamento da mesma ação
+no mês anterior.
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE, fig.width=6, fig.align="center"}
+
+# Inicialização 
+
+# Limpeza do workspace #
+
+rm(list=ls())
+
+# Verificação dos pacotes instalados #
+
+packages_needed <- c("multcomp", "mvtnorm", "ggplot2", "car", "reshape2")
+for (package_name in packages_needed) {
+      if (!(package_name %in% rownames(installed.packages()))){
+            install.packages(package_name)
+      }
+}
+
+library(ggplot2)
+library(car)
+library(reshape2)
+library(multcomp)
+library(mvtnorm)
+
+# Leitura e tratamento de dados -------------------------------------------
+
+# Leitura do arquivo csv #
+
+# dados <- Histórico de preços de fechamento
+dados <- read.csv('DadosAcoesGrupoF.csv', header = FALSE)
+# Tratamento dos dados #
+
+# Ações <- Histórico variação mensal percentual
+acoes <- matrix(nrow = 35, ncol = 5)
+colnames(acoes) <- c("A1", "A2", "A3", "A4", "A5")
+
+for(i in 1:35){
+  
+  acoes[i,] <- as.matrix((dados[i,] - dados[i+1,])/dados[i+1,] * 100)
+  
+}
+
+# Premissas e parâmetros -------------------------------------------
+
+amostras <- dim(acoes)[1]
+grupos <- dim(acoes)[2]
+
+alfa <- 0.05
+beta <- 0.20 #Valor desejado
+
+# Tamanho do efeito #
+
+delta <- 1
+
+# 1% de variação para ações de mesma volatilidade deve ser considerado relevante 
+
+# Criar o boxplot com ggplot2 #
+
+acoes_long <- melt(acoes, variable.name = "Classe", value.name = "Valor")
+colnames(acoes_long)[colnames(acoes_long) == "Var2"] <- "Classe"
+
+ggplot(acoes_long, aes(x = Classe, y = Valor, fill = Classe)) +
+  geom_boxplot() +
+  labs(title = "Boxplot da Variação das Ações", x = "Classe", y = "Valor") +
+  theme(legend.position = "right")
+
+```
+
+## Análise Estatística
+
+### Resultados do Experimento 1
+
+Aplica-se a Análise de Variância (ANOVA) para verificar se existem
+diferenças significativas nas médias das variações percentuais mensais
+das cinco ações da bolsa de valores.
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE, fig.width=6, fig.align="center"}
+
+# Teste inicial ----------------------------------------------------
+
+modelo <- aov(Valor ~ Classe, data = acoes_long)
+summary.aov(modelo)
+
+# Se p-valor < alfa, rejeita H0
+# Podemos rejeitar H0 em favor de H1, as ações são diferentes
+
+```
+
+A tabela do teste ANOVA fornece, além das informações das fontes de
+variabilidade (níveis e erro aleatório) com seus respectivos graus de
+liberdade, soma dos quadrados e quadrados médios, o valor da estatística
+de teste $F_0$ e o seu p-valor correspondente.
+
+O valor F é a razão entre os quadrados médios dos grupos e dos resíduos:
+
+$$
+F_0 = \frac{\text{Mean Sq (Classe)}}{\text{Mean Sq (Residuals)}} = \frac{\text{37.83}}{\text{0.93}} = 40.68
+$$ O valor F de 40.68 indica que a variabilidade entre as ações é 40.68
+vezes maior do que a variabilidade dentro de cada ação, ou seja,
+resultados significantemente distintos entre si. E o p-valor (\<2e-16) é
+menor do que o nível de significância padrão de 0.05, rejeitando a
+hipótese nula.
+
+### Validação das Premissas
+
+É necessário verificar três premissas: 1. Normalidade; 2.
+Homoscedasticidade, i.e., igualdade da variância entre os grupos; 3.
+Independência.
+
+Para validar a premissa de normalidade da população, utiliza-se o teste
+Shapiro-Wilk.
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE, fig.width=6, fig.align="center"}
+
+# Teste de premissas -----------------------------------------------------
+
+# Normalidade dos resíduos - Teste de Shapiro #
+
+shapiro.test(modelo$residuals)
+
+par(new = F)
+qqPlot(modelo$residuals, 
+       pch = 16, 
+       lwd = 3, 
+       cex = 2, 
+       las = 1)
+
+```
+
+A estatística W de 0.99562 (próxima a 1), combinada ao p-valor de 0.8924
+(superior a 0.05) indicam forte aderência à normalidade.
+
+A premissa de homoscedasticidade pode ser verificada pelo teste de
+Fligner-Killen.
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE, fig.width=6, fig.align="center"}
+
+# Homoscedasticidade - Teste de Fligner-Killen #
+
+fligner.test(Valor ~ Classe, data = acoes_long)
+
+par(new = F)
+plot(x    = modelo$fitted.values,
+     y    = modelo$residuals,
+     cex  = 2,
+     las  = 1,
+     pch  = 16,
+     xlab = "Valores ajustados",
+     ylab = "Resíduos")
+
+```
+
+O p-valor é igual a 0.8552 (superior a 0.05) sugere que a homogeneidade
+das variâncias foi atendida, ou seja, a hipótese de homoscedasticidade é
+mantida.
+
+O teste de Durbin-Watson da autocorrelação é utilizado então para
+validar a premissa de independência das amostras. Esta premissa
+refere-se à independência entre as observações, de forma que o valor de
+uma observação ou amostra não deve ser influenciado pelas outras.
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE, fig.width=6, fig.align="center"}
+
+# Independência - Teste de Durbin-Watson #
+
+durbinWatsonTest(modelo)
+
+```
+
+A correlação entre as observações atuais e as passadas é de 0.031, o
+valor da estatística de Durbin-Watson (1.925964) é muito próximo de 2 e
+que o p-valor (0.382) é superior ao nível de significância de 0.05. Tais
+valores sugerem que os resíduos do modelo são independentes.
+
+Assim, as premissas de ANOVA de normalidade, homoscedasticidade e
+independência dos dados foram atendidas.
+
+O power.t.test determina o número de amostras necessário alcançar o
+poder de teste desejado.
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE, fig.width=6, fig.align="center"}
+
+# Cálculo do Número de amostras -------------
+
+tau <- c(-delta / 2, 
+         delta / 2, 
+         rep(0, grupos - 2))
+
+sigma <- max(sd(acoes[,1]),sd(acoes[,2]),sd(acoes[,3]),sd(acoes[,4]),sd(acoes[,5]))
+
+vartau <- var(tau)
+
+# Cálculo do número de amostras para o poder do teste
+n_amostras <- power.anova.test(groups      = grupos, 
+                               between.var = vartau, 
+                               within.var  = sigma ^ 2, 
+                               sig.level   = alfa, 
+                               power       = 1 - beta)$n
+
+# Exibindo o número de amostras necessário
+cat("Número de amostras necessárias para poder de 80%:", n_amostras, "\n")
+
+# Calculando o poder real do teste
+beta_real <- 1 - power.anova.test(groups      = grupos, 
+                                  between.var = vartau, 
+                                  within.var  = sigma ^ 2, 
+                                  sig.level   = alfa, 
+                                  n           = amostras)$power
+
+# Exibindo o poder real do teste
+cat("Poder real do teste com o número atual de amostras:", 1-beta_real, "\n")
+
+```
+
+Para alcançar o poder de teste desejado 0.8 (80%) seriam necessárias 30 amostras, de forma que o poder alcançado foi de aproximadamente 0.8711 (ou 87.11%). Os resultados indicam que o número de amostras utilizado foi mais que suficiente.
+
+### Resultados do Experimento
+
+Uma vez que a hipótese nula foi rejeitada e o teste de ANOVA obteve
+sucesso, é possível iniciar a análise de qual ação melhor se adequa aos
+critérios do investidor. Realizam-se então comparações múltiplas. Neste
+estudo são feitas comparações do tipo todos contra todos através da
+abordagem de Diferença Significativa Honesta (HSD - Honest Significant
+Difference) de Tukey. O método de comparação do tipo todos contra um
+(Teste de Dunnett) não é recomendado para o presente estudo, pois não há
+grupo de controle - nenhuma ação será considerada como padrão de
+referência para as demais.
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE, fig.width=6, fig.align="center"}
+
+# Teste todos contra todos -----------------------------------------------------
+
+# Rejeitamos H0, as ações são diferentes, e as premissas válidas
+
+modelo_tct <- glht(modelo, linfct = mcp(Classe = "Tukey"))
+modelo_tct_CI <- confint(modelo_tct, level = 0.95)
+
+summary(modelo_tct_CI)
+par(new = F)
+
+# Gráfico
+plot(modelo_tct_CI, 
+     xlab       = "Variação das ações",
+     cex.axis   = 0.8,    
+     cex.lab    = 0.8,    
+     cex        = 1.0)    
+
+```
+
+Os intervalos calculados ajudam a interpretar as diferenças entre os
+pares de grupos. Quando o intervalo não contém 0 é uma indição de que há
+uma diferença estatisticamente significativa entre os grupos.
+
+Considerando que as ações A2 e A3 se destacam por apresentarem os
+maiores estimates, utiliza-se como apoio o Bloxplot das ações para
+compará-las. A ação A2 possui o maior valor mínimo dentre todas ações;
+A3 apresenta o maior preço de fechamento e também maior variação, logo
+maior volatilidade; as extensões da caixa de A2 são menores, logo menor
+variação.
+
+Assim, considera-se que a ação A3 deve ser escolhida pelo investidor.
+
+## Conclusões e Recomendações
+
+Neste estudo, foram comparadas cinco ações a partir da análise de seus históricos de retorno ao longo de 36 meses, com o objetivo de determinar a de maior potencial de rendimento mensal. Inicialmente, a **Análise de Variância (ANOVA)** confirmou que existia uma diferença significativa entre as médias de retorno das ações. Em seguida, o teste post-hoc de **Tukey** foi aplicado para identificar onde residiam essas diferenças. A análise revelou que as ações A2 e A3 possuíam um desempenho estatisticamente semelhante entre si, mas ambas eram significativamente superiores às demais.
+
+Para a escolha final entre as duas melhores, a análise do boxplot foi fundamental. A ação **A2** apresentou menor dispersão e um valor mínimo mais elevado, caracterizando um perfil mais estável e de menor risco, sendo a escolha natural para um investidor de perfil conservador. Por outro lado, a ação **A3** mostrou maior volatilidade, o que se traduz em maior risco, mas também em um maior potencial de retorno. Dado que o objetivo do investidor é a maior rentabilidade possível para o próximo mês, assumindo um perfil mais arrojado, a recomendação final é pela **Ação A3**.
+
+Como limitação do estudo, ressalta-se que o teste ANOVA apresentou um poder estatístico (12.9%) abaixo do desejado (80%). Para que as conclusões tenham maior robustez, recomenda-se a coleta de mais três meses de dados, o que permitiria atingir o poder de teste almejado.
+
+## Papéis desempenhados
+
+**Marília Melo**: Metodologia, Pesquisa, Design da
+apresentação de dados, Desenvolvimento, Redação  original; **Gustavo Reis**:
+Metodologia, Supervisão, Validação de dados e
+experimentos, Redação - revisão; **Bernardo Bacha**: Análise de dados,
+Metodologia, implementação e teste de software,
+Redação - revisão;
+
+## Referências
+
+BESSANI, M. **Análise de Variância (ANOVA)**. Belo Horizonte: UFMG, 2025. Material da disciplina de Planejamento e Análise de Experimentos.
+
+BESSANI, M. **Comparações Simples e Pareadas**. Belo Horizonte: UFMG, 2025. Material da disciplina de Planejamento e Análise de Experimentos.
+
+BESSANI, M. **Inferência Estatística**. Belo Horizonte: UFMG, 2025. Material da disciplina de Planejamento e Análise de Experimentos.
+
+MONTGOMERY, D. C.; RUNGER, G. C. **Applied Statistics and Probability for Engineers**. 5. ed. Hoboken: John Wiley & Sons, 2010.
+
+LEE, S.; LEE, D. K. What is the proper way to apply the multiple comparison test? **Korean Journal of Anesthesiology**, v. 71, n. 5, p. 353-360, 2018.
