@@ -321,7 +321,9 @@ Neste estudo, foram comparadas cinco ações a partir da análise de seus histó
 
 Para a escolha final entre as duas melhores, a análise do boxplot foi fundamental. A ação **A2** apresentou menor dispersão e um valor mínimo mais elevado, caracterizando um perfil mais estável e de menor risco, sendo a escolha natural para um investidor de perfil conservador. Por outro lado, a ação **A3** mostrou maior volatilidade, o que se traduz em maior risco, mas também em um maior potencial de retorno. Dado que o objetivo do investidor é a maior rentabilidade possível para o próximo mês, assumindo um perfil mais arrojado, a recomendação final é pela **Ação A3**.
 
-Como limitação do estudo, ressalta-se que o teste ANOVA apresentou um poder estatístico (12.9%) abaixo do desejado (80%). Para que as conclusões tenham maior robustez, recomenda-se a coleta de mais três meses de dados, o que permitiria atingir o poder de teste almejado.
+Um ponto que reforça a validade desta recomendação é a robustez estatística do experimento. O teste alcançou um poder estatístico de 87,11%, superando a meta de 80% definida para o estudo. Isso indica que a análise teve uma alta probabilidade de detectar as diferenças reais entre os retornos das ações e que o número de amostras utilizado foi mais que suficiente.
+
+Como sugestão para aprimorar futuras análises, poderiam ser considerados horizontes de tempo mais longos, que capturem diferentes ciclos de mercado. Além disso, a inclusão de outras variáveis, como indicadores fundamentalistas ou o sentimento do mercado, poderia complementar a análise baseada puramente em retornos históricos, oferecendo uma visão ainda mais completa para a tomada de decisão.
 
 ## Papéis desempenhados
 
