@@ -1,0 +1,269 @@
+---
+title: "EC03 — Análise de Desempenho (DE) na Classe Rosenbrock"
+subtitle: "Relatório de Estudo de Caso (EC03)"
+date: "`r format(Sys.time(), '%d/%m/%Y')`"
+output:
+  pdf_document:
+    toc: false
+    number_sections: true
+    fig_caption: true
+    latex_engine: xelatex
+fontsize: 11pt
+geometry: margin=2.5cm
+encoding: UTF-8
+---
+\begin{center}
+\begin{tabular}{ccc}
+\textbf{Bernardo Bacha} & \textbf{Gustavo Reis} & \textbf{Marília Melo} \\
+\textnormal{bernardobr@ufmg.br} & \textnormal{augustogustavo94@gmail.com} & \textnormal{mariliamacedomelo@gmail.com} \\
+\end{tabular}
+\end{center}
+```{r setup, include=FALSE}
+# --- CONFIGURAÇÃO GLOBAL ---
+# Define que nenhum bloco de código será exibido no PDF final (echo = FALSE)
+options(width = 120)
+options(repos = c(CRAN = "[https://cloud.r-project.org](https://cloud.r-project.org)"))
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, comment = "#>")
+set.seed(12345)
+
+# Carrega bibliotecas necessárias
+suppressPackageStartupMessages(library(pwr))
+suppressPackageStartupMessages(library(scales)) # Para formatar números
+
+# Função helper para tabelas
+kbl <- function(x, caption = NULL, digits = 4, align = NULL) {
+  knitr::kable(x, caption = caption, digits = digits, align = align, booktabs = TRUE)
+}
+```
+
+```{r run-all-calcs, include=FALSE}
+# --- EXECUÇÃO DE TODOS OS CÁLCULOS ---
+# Este bloco executa todos os cálculos do Rmd original
+# e armazena os resultados em variáveis que serão usadas no texto.
+# O bloco em si não será exibido no PDF.
+
+# 1. Cálculo do Tamanho Amostral
+pwr_res <- pwr.t.test(d = 0.5, sig.level = 0.05, power = 0.8,
+                      type = "paired", alternative = "two.sided")
+
+# 2. Leitura e Tabulação dos Dados
+csv_path <- "resultados_EC03.csv"
+dados <- read.csv(csv_path, stringsAsFactors = FALSE)
+stopifnot(all(c("dim","Fbest_cfg1","Fbest_cfg2") %in% names(dados)))
+dados <- dados[order(dados$dim), ]
+dados <- subset(dados, is.finite(Fbest_cfg1) & is.finite(Fbest_cfg2))
+dados$Delta <- with(dados, Fbest_cfg2 - Fbest_cfg1)
+n <- nrow(dados)
+wins_cfg2 <- sum(dados$Delta < 0); wins_cfg1 <- sum(dados$Delta > 0); ties <- sum(dados$Delta == 0)
+
+resumo <- data.frame(
+  Variavel = c("Fbest_cfg1","Fbest_cfg2","Delta (cfg2 - cfg1)"),
+  Media = c(mean(dados$Fbest_cfg1), mean(dados$Fbest_cfg2), mean(dados$Delta)),
+  Mediana = c(median(dados$Fbest_cfg1), median(dados$Fbest_cfg2), median(dados$Delta)),
+  DP = c(sd(dados$Fbest_cfg1), sd(dados$Fbest_cfg2), sd(dados$Delta))
+)
+placar <- data.frame(N_pares = n, Vitorias_cfg2 = wins_cfg2, Vitorias_cfg1 = wins_cfg1, Empates = ties)
+
+
+# 3. Testes Estatísticos
+diffs <- dados$Delta
+sh <- shapiro.test(diffs)
+
+if (sh$p.value >= 0.05) {
+  test <- t.test(dados$Fbest_cfg2, dados$Fbest_cfg1, paired = TRUE)
+  metodo <- "t pareado (média das diferenças)"
+  efeito_nome <- "Cohen dz"
+  efeito <- mean(diffs)/sd(diffs)
+  ic <- test$conf.int
+} else {
+  test <- suppressWarnings(wilcox.test(dados$Fbest_cfg2, dados$Fbest_cfg1,
+                                       paired = TRUE, conf.int = TRUE, conf.level = 0.95, exact = FALSE))
+  metodo <- "Wilcoxon pareado (mediana das diferenças)"
+  n_w <- length(diffs)
+  z_approx <- qnorm(test$p.value/2, lower.tail = FALSE) * sign(median(diffs))
+  efeito_nome <- "r (aprox.)"
+  efeito <- z_approx / sqrt(n_w)
+  ic <- test$conf.int
+}
+
+# 4. Armazena resultados finais
+resultado <- list(
+  metodo = metodo, shapiro_p = sh$p.value,
+  media_dif = mean(diffs), mediana_dif = median(diffs),
+  p_value = test$p.value,
+  IC95_low = ic[1], IC95_high = ic[2],
+  efeito_nome = efeito_nome, efeito = efeito
+)
+```
+
+# Formulação das Hipóteses de Teste
+
+Para analisar os resultados, definimos a variável de interesse como a diferença pareada ($\Delta$) para cada dimensão $i$:
+\[
+\Delta_i = \mathrm{Fbest}_{\text{cfg2},i} - \mathrm{Fbest}_{\text{cfg1},i}
+\]
+Se $\Delta_i > 0$, a Configuração 1 (cfg1) foi melhor (encontrou um valor menor).
+Se $\Delta_i < 0$, a Configuração 2 (cfg2) foi melhor (encontrou um valor menor).
+
+As hipóteses estatísticas bicaudais sobre a mediana (ou média) das diferenças são:
+$H_0: \mu_\Delta = 0$ (Hipótese Nula: Não há diferença significativa no desempenho médio/mediano entre as duas configurações).
+$H_1: \mu_\Delta \ne 0$ (Hipótese Alternativa: Existe uma diferença significativa no desempenho).
+
+# Cálculo dos Tamanhos Amostrais
+
+O planejamento amostral foi definido para detectar uma diferença considerada "média".
+
+* **Parâmetros (do Enunciado):**
+    * Efeito mínimo detectável (padronizado): $d^* = 0.5$
+    * Nível de significância: $\alpha = 0.05$
+    * Poder estatístico desejado: $1 - \beta = 0.8$
+
+* **Cálculo (para Teste-t pareado):**
+    * O cálculo realizado (usando `pwr.t.test`) resultou em $n = $ `r round(pwr_res$n, 2)`.
+
+* **Tamanho Amostral Definido:**
+    * O valor foi arredondado para cima, exigindo `r ceiling(pwr_res$n)` pares (ou seja, 34 dimensões de teste).
+
+# Coleta e Tabulação dos Dados
+
+Os dados foram lidos do arquivo `resultados_EC03.csv`. A análise utilizou $n=$ `r n` pares, conforme planejado.
+
+```{r tabela-resumo, results='asis'}
+kbl(resumo, caption = "Resumo Descritivo das Métricas", digits = 2)
+```
+
+```{r tabela-placar, results='asis'}
+kbl(placar, caption = "Placar de Vitórias (por Dimensão)")
+```
+
+*Observação: A Configuração 1 obteve um `Fbest` menor (melhor) em todas as 34 dimensões testadas.*
+
+## Análise Gráfica Exploratória
+
+```{r graficos-exploratorios, echo=FALSE, fig.width=9, fig.height=4, fig.cap="Gráficos exploratórios: (Esquerda) Fbest por dimensão (escala log-y); (Direita) Histograma das diferenças."}
+# Configura layout para 2 gráficos lado a lado
+op <- par(mfrow = c(1,2), mar = c(4.5,4.5,3,1), cex.lab=1.0, cex.axis=0.9)
+
+# Define cores (amigáveis para daltonismo)
+col_cfg1 <- "#0072B2" # Azul
+col_cfg2 <- "#D55E00" # Vermelho/Laranja
+
+# --- Gráfico de Linhas (Fbest x Dimensão) ---
+# Os valores de Fbest variam de e-24 a e+06, exigindo uma escala logarítmica
+ylim <- range(c(dados$Fbest_cfg1, dados$Fbest_cfg2), finite = TRUE)
+plot(dados$dim, dados$Fbest_cfg1, type="o", lwd=2, col=col_cfg1, ylim=ylim,
+     pch=19, cex=0.7, log="y", # <-- Uso de escala LOGARÍTMICA
+     xlab="Dimensão", ylab="Fbest (Escala Logarítmica)", main="Fbest por Dimensão")
+lines(dados$dim, dados$Fbest_cfg2, type="o", lwd=2, col=col_cfg2, pch=19, cex=0.7)
+grid(nx=NULL, ny=NULL, col="gray80", lty="dotted")
+legend("topleft", legend=c("Cfg1","Cfg2"), lwd=2, col=c(col_cfg1, col_cfg2), bty="n", pch=19, cex=0.9)
+
+# --- Histograma das Diferenças ---
+hist_col <- "#009E73" # Verde
+hist(dados$Delta, breaks="FD", col=hist_col, border="grey20",
+     main=expression("Distribuição de " * Delta * " (cfg2 - cfg1)"),
+     xlab=expression(Delta), ylab="Frequência")
+rug(dados$Delta, col="black") # Adiciona 'rug plot' para mostrar pontos individuais
+grid(nx=NULL, ny=NULL, col="gray80", lty="dotted")
+
+par(op)
+```
+
+# Teste das Hipóteses
+
+O procedimento de teste seguiu a lógica de verificar a premissa de normalidade antes de aplicar o teste principal.
+
+* **Checagem da Premissa (Normalidade):**
+    * O Teste de Shapiro-Wilk foi aplicado sobre o vetor de diferenças ($\Delta$).
+    * O resultado foi $p = $ `r scientific(resultado$shapiro_p, digits = 3)`.
+
+* **Decisão sobre o Teste:**
+    * Como $p < 0.05$, a hipótese de normalidade dos dados foi **rejeitada**.
+    * Portanto, o teste não-paramétrico (que não exige normalidade) foi utilizado: **Teste de Wilcoxon pareado**.
+
+* **Resultado do Teste Principal (Wilcoxon):**
+    * O teste retornou um $p\text{-valor} = $ `r scientific(resultado$p_value, digits = 3)`.
+
+* **Decisão Estatística:**
+    * Como $p < 0.05$ (o nível de significância $\alpha$), **rejeitamos a hipótese nula ($H_0$)**.
+
+# Estimação da Magnitude da Diferença
+
+Como o teste de Wilcoxon foi usado, estimamos a mediana das diferenças ($\Delta$):
+
+* **Estimativa da Mediana:** `r scientific(resultado$mediana_dif, digits = 3)`
+* **Intervalo de Confiança (IC 95% para $\Delta$):** [`r scientific(resultado$IC95_low, digits = 3)`, `r scientific(resultado$IC95_high, digits = 3)`]
+* **Tamanho de Efeito ($r$ aprox.):** `r round(resultado$efeito, 3)` (considerado um efeito de grande magnitude)
+
+O IC 95% não contém o zero, reforçando a rejeição de $H_0$.
+
+# Verificação das Premissas dos Testes
+
+Conforme detalhado no item 4, a premissa de normalidade das diferenças, necessária para o Teste-t pareado, foi verificada e **rejeitada** (Shapiro-Wilk $p = $ `r scientific(resultado$shapiro_p, digits = 3)`). A análise foi ajustada corretamente ao utilizar o Teste de Wilcoxon pareado, que é robusto a essa violação.
+
+O gráfico QQ-plot abaixo confirma visualmente a falta de normalidade, com os pontos se desviando significativamente da linha teórica.
+
+```{r qqplot-bonito, echo=FALSE, fig.width=5, fig.height=4, fig.cap="Gráfico QQ-plot para verificar a normalidade das diferenças (Delta)."}
+# Cores
+qq_col <- "#E69F00" # Laranja/Ouro
+qq_line_col <- "#D55E00" # Vermelho/Laranja
+
+# Gráfico
+par(mar = c(4.5,4.5,3,1), cex.lab=1.0, cex.axis=0.9)
+qqnorm(dados$Delta, main=expression("QQ-plot das Diferenças (" * Delta * ")"),
+       xlab="Quantis Teóricos (Normais)", ylab="Quantis Amostrais (Delta)",
+       pch=19, col=qq_col, cex=0.8)
+qqline(dados$Delta, col=qq_line_col, lwd=2, lty=2)
+grid(nx=NULL, ny=NULL, col="gray80", lty="dotted")
+```
+
+# Derivação de Conclusões
+
+Com base nos resultados, podemos responder às perguntas do enunciado:
+
+* **Há diferença no desempenho?**
+    * **Sim.** O p-valor (`r scientific(resultado$p_value, digits = 3)`) foi extremamente baixo, indicando que a diferença observada não se deve ao acaso.
+
+* **Qual a melhor configuração e qual a magnitude?**
+    * O IC 95% para a diferença ($\Delta = \text{cfg2} - \text{cfg1}$) é [`r scientific(resultado$IC95_low, digits = 3)`, `r scientific(resultado$IC95_high, digits = 3)`].
+    * Como o intervalo é inteiramente positivo, temos alta confiança de que $Fbest_{cfg2} > Fbest_{cfg1}$.
+    * Lembrando que **menor = melhor**, a **Configuração 1 (cfg1) apresentou um desempenho estatisticamente superior**.
+
+* **Qual configuração deve ser recomendada?**
+    * Para a classe de problemas Rosenbrock, a **Configuração 1** deve ser recomendada.
+
+# Discussão sobre Possíveis Limitações do Estudo
+
+O estudo identifica as seguintes limitações e sugestões de melhoria:
+
+* **Limitações:**
+    * **Estocasticidade:** O DE é um algoritmo estocástico (aleatório). Este estudo usou apenas uma execução (réplica) por dimensão. O desempenho observado pode ter sido influenciado pelo ruído.
+    * **Generalização:** Os resultados são válidos apenas para a classe de funções Rosenbrock.
+    * **Orçamento Fixo:** O estudo usou um orçamento de avaliação fixo.
+
+* **Sugestões de Melhoria (Extensões):**
+    * Incluir múltiplas réplicas por dimensão para obter uma estimativa mais robusta e reduzir o ruído.
+    * Testar as configurações em outras classes de funções de benchmark.
+    * Analisar a sensibilidade a outros hiperparâmetros (como $F$, $CR$ e tamanho da população).
+    
+    
+# Papéis desempenhados
+
+**Marília Melo**: Metodologia, Pesquisa, Design da
+apresentação de dados, Desenvolvimento, Redação  original; **Gustavo Reis**:
+Metodologia, Supervisão, Validação de dados e
+experimentos, Redação - revisão; **Bernardo Bacha**: Análise de dados,
+Metodologia, implementação e teste de software,
+Redação - revisão;
+
+# Referências
+
+BESSANI, M. **Análise de Variância (ANOVA)**. Belo Horizonte: UFMG, 2025. Material da disciplina de Planejamento e Análise de Experimentos.
+
+BESSANI, M. **Comparações Simples e Pareadas**. Belo Horizonte: UFMG, 2025. Material da disciplina de Planejamento e Análise de Experimentos.
+
+BESSANI, M. **Inferência Estatística**. Belo Horizonte: UFMG, 2025. Material da disciplina de Planejamento e Análise de Experimentos.
+
+MONTGOMERY, D. C.; RUNGER, G. C. **Applied Statistics and Probability for Engineers**. 5. ed. Hoboken: John Wiley & Sons, 2010.
+
+LEE, S.; LEE, D. K. What is the proper way to apply the multiple comparison test? **Korean Journal of Anesthesiology**, v. 71, n. 5, p. 353-360, 2018.
