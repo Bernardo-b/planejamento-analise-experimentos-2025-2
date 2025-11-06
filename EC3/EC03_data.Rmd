@@ -1,0 +1,116 @@
+
+---
+title: "EC03 - Parte 1: Simulação e Geração de Dados"
+author: "Equipe F"
+date: "`r format(Sys.time(), '%d/%m/%Y')`"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# Instala pacotes se necessário
+if(!require(ExpDE)) install.packages("ExpDE")
+if(!require(smoof)) install.packages("smoof")
+if(!require(pwr)) install.packages("pwr")
+
+library(ExpDE)
+library(smoof)
+library(pwr)
+
+set.seed(12345) 
+```
+
+# 1. Definição dos Parâmetros (Equipe F)
+
+```{r parametros}
+# Configuração 1 (Equipe F)
+recpars1 <- list(name = "recombination_blxAlphaBeta", alpha = 0, beta = 0)
+mutpars1 <- list(name = "mutation_rand", f = 4)
+
+# Configuração 2 (Equipe F)
+recpars2 <- list(name = "recombination_exp", cr = 0.6)
+mutpars2 <- list(name = "mutation_best", f = 2)
+
+# Parâmetros comuns
+selpars  <- list(name = "selection_standard")
+
+# Parâmetros do Planejamento Experimental
+EFFECT_SIZE <- 0.5  # d de Cohen médio
+POWER       <- 0.8  # 80% de poder
+ALPHA       <- 0.05 # 5% de significância
+```
+
+# 2. Cálculo do Tamanho Amostral
+
+Determinando quantas dimensões (blocos) precisamos rodar.
+
+```{r tamanho-amostral}
+pwr_res <- pwr.t.test(d = EFFECT_SIZE, sig.level = ALPHA, power = POWER,
+                      type = "paired", alternative = "two.sided")
+N_blocos <- ceiling(pwr_res$n)
+
+cat("Simulação será rodada para", N_blocos, "dimensões distintas.\n")
+```
+
+# 3. Execução da Simulação
+
+
+```{r execucao}
+# Sorteia as N dimensões (blocos) sem reposição entre 2 e 150
+dims_teste <- sort(sample(2:150, N_blocos, replace = FALSE))
+
+# Prepara dataframe para receber os dados
+dados_simulacao <- data.frame(
+  dim = integer(N_blocos),
+  Fbest_cfg1 = numeric(N_blocos),
+  Fbest_cfg2 = numeric(N_blocos)
+)
+
+cat("Iniciando simulação...\n")
+pb <- txtProgressBar(min = 0, max = N_blocos, style = 3) # Barra de progresso
+
+for (i in 1:N_blocos) {
+  D <- dims_teste[i] # Dimensão atual
+
+  # 1. Cria a função base do smoof para esta dimensão
+  smoof_fn <- smoof::makeRosenbrockFunction(dimensions = D)
+
+  # 2. Cria um WRAPPER que aceita matrizes (exigido pelo ExpDE)
+  # Este wrapper aplica a função 'smoof_fn' a cada linha da matriz X
+  fn_wrapper <- function(X) {
+    if(!is.matrix(X)) X <- matrix(X, nrow = 1)
+    apply(X, MARGIN = 1, FUN = smoof_fn)
+  }
+
+  # 3. Define probpars apontando para o WRAPPER, não para a função smoof direta
+  probpars <- list(name = "fn_wrapper", xmin = rep(-5, D), xmax = rep(10, D))
+
+  # Critérios de parada
+  stopcrit <- list(names = "stop_maxeval", maxevals = 5000 * D, maxiter = 100 * D)
+  popsize_atual <- 5 * D
+
+  # Executa Configuração 1
+  # Nota: ExpDE vai chamar 'fn_wrapper' porque passamos esse nome em probpars
+  out1 <- ExpDE(mutpars = mutpars1, recpars = recpars1, popsize = popsize_atual,
+                selpars = selpars, stopcrit = stopcrit, probpars = probpars,
+                showpars = list(show.iters = "none"))
+
+  # Executa Configuração 2
+  out2 <- ExpDE(mutpars = mutpars2, recpars = recpars2, popsize = popsize_atual,
+                selpars = selpars, stopcrit = stopcrit, probpars = probpars,
+                showpars = list(show.iters = "none"))
+
+  # Salva resultados
+  dados_simulacao$dim[i] <- D
+  dados_simulacao$Fbest_cfg1[i] <- out1$Fbest
+  dados_simulacao$Fbest_cfg2[i] <- out2$Fbest
+
+  setTxtProgressBar(pb, i)
+}
+close(pb)
+
+# Salva o arquivo final
+write.csv(dados_simulacao, "dados_EC03.csv", row.names = FALSE)
+```
