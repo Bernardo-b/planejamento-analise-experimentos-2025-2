@@ -1,0 +1,212 @@
+---
+title: "Relatório Final: Comparação de Configurações DE"
+subtitle: "Estudo de Caso 03 — Classe Rosenbrock"
+author: "Equipe F"
+date: "`r format(Sys.time(), '%d/%m/%Y')`"
+output:
+  pdf_document:
+    toc: false
+    number_sections: false
+    fig_caption: true
+fontsize: 11pt
+geometry: margin=2.5cm
+header-includes:
+  - \usepackage{booktabs}
+  - \usepackage{float}
+  - \usepackage{amsmath}
+---
+
+```{r setup, include=FALSE}
+# ====== Setup ======
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+
+# Pacotes necessários
+pkgs <- c("ggplot2","knitr","kableExtra","stats")
+to_install <- pkgs[!pkgs %in% rownames(installed.packages())]
+if (length(to_install)) install.packages(to_install, quiet = TRUE)
+
+library(ggplot2)
+library(knitr)
+library(kableExtra)
+
+# Checagem LaTeX (para PDF)
+if (!requireNamespace("tinytex", quietly = TRUE)) {
+  message("Pacote 'tinytex' não encontrado. Para gerar PDF, instale com: install.packages('tinytex'); tinytex::install_tinytex()")
+} else {
+  if (!tinytex::is_tinytex() && isFALSE(tinytex::latexmk_available())) {
+    message("LaTeX não disponível. Rode: tinytex::install_tinytex()")
+  }
+}
+
+# Arquivo de dados
+arq <- "dados_EC03.csv"
+if (!file.exists(arq)) {
+  stop("ERRO CRÍTICO: Arquivo 'dados_EC03.csv' não encontrado. Salve-o na mesma pasta deste Rmd.")
+}
+```
+
+# 1. Introdução e Desenho Experimental
+
+Este relatório compara o desempenho de **duas configurações de Evolução Diferencial (DE)** na **classe de funções de Rosenbrock**.
+
+O experimento foi conduzido como **Blocos Completos Casualizados (RCBD)**, em que cada **dimensão** avaliada atua como um **bloco** para controlar variação devida à dificuldade inerente (dimensões maiores tendem a ser mais difíceis).
+
+- **Métrica de desempenho:** melhor valor encontrado (*Fbest*). **Menor é melhor**.  
+- **Diferença pareada por bloco \(j\):** \(\Delta_j = \mathrm{Fbest}_{\text{cfg2}, j} - \mathrm{Fbest}_{\text{cfg1}, j}\).
+
+```{r carga}
+dados <- read.csv(arq, stringsAsFactors = FALSE)
+
+# Colunas esperadas
+col_esp <- c("dim","Fbest_cfg1","Fbest_cfg2")
+faltando <- setdiff(col_esp, names(dados))
+if (length(faltando)) {
+  stop(paste0("O CSV deve conter as colunas: ", paste(col_esp, collapse=", "),
+              ". Faltando: ", paste(faltando, collapse=", "), "."))
+}
+
+# Delta garantido
+dados$Delta <- with(dados, Fbest_cfg2 - Fbest_cfg1)
+n_blocos <- nrow(dados)
+```
+
+**Amostra:** `r n_blocos` blocos (dimensões distintas).
+
+# 2. Contexto dos Testes de Hipótese (entra no relatório)
+
+## 2.1. Comparação entre vários grupos (ANOVA de 1 fator)
+
+\[
+H_0:\ \tau_i=0\ \forall i
+\qquad\text{vs}\qquad
+H_1:\ \exists\,\tau_i\neq 0.
+\]
+
+No modelo \(\mu_i=\mu+\tau_i\), \(\tau_i\) são os **efeitos de tratamento**.  
+- **Interpretação:** \(H_0\) afirma que **todas as médias de grupos são iguais** (nenhum tratamento altera a média).  
+- **Alternativa:** **pelo menos um grupo difere**.  
+- **Teste típico:** estatística **F** da ANOVA.
+
+> *Observação:* aqui usamos **pareamento por bloco** para comparar **duas** configurações ao longo das dimensões; por isso o teste operacional que aplicamos na Seção 4 é **pareado** (t ou Wilcoxon). A formulação acima é o pano de fundo conceitual quando se pensa em vários tratamentos/grupos.
+
+## 2.2. Diferença média em pares (t pareado)
+
+\[
+H_0:\ \mu_D = 0
+\qquad\text{vs}\qquad
+H_1:\ \mu_D \neq 0,
+\]
+em que \(\mu_D\) é a **média das diferenças** \(D\) entre pares (aqui, a diferença de Fbest entre configurações **dentro de cada dimensão/bloco**).
+
+- **Interpretação:** \(H_0\) diz que a **diferença média é zero** (sem vantagem média).  
+- **Alternativa:** **há efeito** (\(\mu_D \ne 0\)).  
+- **Teste usado:** **t pareado** (se normalidade) ou **Wilcoxon pareado** (não paramétrico).
+
+Em palavras: a ANOVA de 1 fator responde “**existe diferença entre vários grupos?**”; o **t pareado/Wilcoxon** responde “**a diferença média entre pares é nula?**”.
+
+# 3. Exploração dos Dados
+
+## 3.1. Desempenho por dimensão (escala log10)
+
+```{r plt, fig.height=5, fig.width=7, fig.cap="Fbest por dimensão (menor é melhor)."}
+ggplot(dados, aes(x = dim)) +
+  geom_line(aes(y = Fbest_cfg1, color = "Configuração 1"), linewidth = 1, alpha = 0.85) +
+  geom_point(aes(y = Fbest_cfg1, color = "Configuração 1"), size = 2) +
+  geom_line(aes(y = Fbest_cfg2, color = "Configuração 2"), linewidth = 1, alpha = 0.85) +
+  geom_point(aes(y = Fbest_cfg2, color = "Configuração 2"), size = 2) +
+  scale_y_log10() +
+  scale_color_manual(values = c("Configuração 1" = "#1f77b4", "Configuração 2" = "#d62728")) +
+  labs(x = "Dimensão (bloco)", y = "Fbest (log10)", color = NULL) +
+  theme_minimal() +
+  theme(legend.position = "top")
+```
+
+## 3.2. Verificação de premissas (normalidade de \(\Delta\))
+
+```{r premissas, fig.height=4, fig.width=7, fig.cap="Normalidade de DELTA = (Cfg2 - Cfg1)."}
+par(mfrow=c(1,2))
+hist(dados$Delta, main="Histograma de DELTA", xlab="DELTA = Cfg2 - Cfg1",
+     col="lightblue", border="white")
+qqnorm(dados$Delta, main="QQ-Plot de DELTA", pch=19, cex=0.7)
+qqline(dados$Delta, col="red", lwd=2)
+par(mfrow=c(1,1))
+
+shapiro_res <- shapiro.test(dados$Delta)
+```
+
+- **Shapiro–Wilk:** p-valor = `r format.pval(shapiro_res$p.value, digits = 3)`
+
+```{r escolha, results='asis'}
+if (shapiro_res$p.value < 0.05) {
+  cat("**Decisão:** p < 0,05 → rejeita-se normalidade. Usaremos **Wilcoxon pareado** (não paramétrico).")
+  USE_PARAMETRIC <- FALSE
+} else {
+  cat("**Decisão:** p ≥ 0,05 → não rejeitamos normalidade. Usaremos **t pareado** (paramétrico).")
+  USE_PARAMETRIC <- TRUE
+}
+```
+
+# 4. Teste Pareado e Resultados
+
+\[
+H_0:\ \text{mediana/média de } \Delta = 0 \quad\text{vs}\quad H_1:\ \neq 0.
+\]
+
+```{r teste}
+if (USE_PARAMETRIC) {
+  teste <- t.test(dados$Fbest_cfg1, dados$Fbest_cfg2, paired = TRUE, conf.level = 0.95)
+  est_central <- mean(dados$Delta)
+  tipo_est <- "Média das diferenças"
+} else {
+  teste <- wilcox.test(dados$Fbest_cfg1, dados$Fbest_cfg2, paired = TRUE,
+                       conf.int = TRUE, conf.level = 0.95, exact = FALSE)
+  est_central <- unname(teste$estimate) # Hodges–Lehmann (pseudo-mediana)
+  tipo_est <- "Pseudo-mediana das diferenças"
+}
+```
+
+## 4.1. Quadro-resumo
+
+```{r tabela}
+resumo_final <- data.frame(
+  "P-valor" = format.pval(teste$p.value, digits = 4, eps = 1e-4),
+  "Estimativa Central (DELTA)" = sprintf("%.4e", est_central),
+  "IC [2,5%]" = sprintf("%.4e", teste$conf.int[1]),
+  "IC [97,5%]" = sprintf("%.4e", teste$conf.int[2]),
+  check.names = FALSE
+)
+kable(resumo_final, caption = "Resultados do teste pareado", align = "c") |>
+  kable_styling(full_width = FALSE)
+```
+
+# 5. Conclusão
+
+```{r conclusao, results='asis'}
+cat("Com base no p-valor (", format.pval(teste$p.value, digits = 3),
+    "), ", ifelse(teste$p.value < 0.05,
+    "rejeita-se H0 ao nível de 5%. Há diferença estatisticamente significativa entre as configurações.",
+    "não há evidências suficientes (5%) para rejeitar H0; não confirmamos superioridade."), "\n\n", sep = "")
+
+# Determina vencedor quando o IC não cruza zero
+if (teste$conf.int[1] * teste$conf.int[2] > 0) {
+  if (teste$conf.int[1] > 0) {
+    vencedor <- "**Configuração 1**"  # DELTA>0 → Cfg2 pior (minimização)
+    perdedor <- "Configuração 2"
+  } else {
+    vencedor <- "**Configuração 2**"  # DELTA<0 → Cfg2 melhor
+    perdedor <- "Configuração 1"
+  }
+  cat("Como o IC de DELTA = (Cfg2 - Cfg1) não contém 0 e o objetivo é minimizar, concluímos que ",
+      vencedor, " superou a ", perdedor, " nesta classe de problemas.", sep = "")
+} else {
+  cat("O intervalo de confiança cruza 0; a direção do efeito é incerta.")
+}
+```
+
+---
+
+## Reprodutibilidade
+- **Entrada:** `dados_EC03.csv` com as colunas `dim`, `Fbest_cfg1`, `Fbest_cfg2`.  
+- **Saída:** este PDF com gráficos, teste e conclusão automática.
+- **Dependências:** `ggplot2`, `knitr`, `kableExtra`, LaTeX (recomendado `tinytex`).
