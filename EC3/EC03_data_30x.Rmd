@@ -1,0 +1,119 @@
+---
+title: "Simulação Completa (EC03)"
+author: "Equipe F"
+date: "`r format(Sys.time(), '%d/%m/%Y')`"
+output: pdf_document
+---
+
+# Simulação e Geração de Dados
+
+O código abaixo executa todo o processo de simulação.
+
+```{r simulacao_completa, echo=TRUE}
+# ==============================================================================
+# 1. SETUP INICIAL E PACOTES
+# ==============================================================================
+knitr::opts_chunk$set(echo = TRUE)
+# Define espelho do CRAN para evitar erros de instalação
+options(repos = c(CRAN = "[https://cloud.r-project.org](https://cloud.r-project.org)"))
+
+pkgs <- c("ExpDE", "smoof", "pwr")
+new_pkgs <- pkgs[!(pkgs %in% installed.packages()[,"Package"])]
+if(length(new_pkgs)) install.packages(new_pkgs)
+invisible(lapply(pkgs, library, character.only = TRUE))
+set.seed(12345)
+
+# ==============================================================================
+# 2. DEFINIÇÃO DE PARÂMETROS
+# ==============================================================================
+# Parâmetros da Simulação
+N_REPETICOES <- 30   # Repetições dentro de cada bloco para tirar média
+EFFECT_SIZE  <- 0.5  # d de Cohen
+POWER        <- 0.8  # Poder (80%)
+ALPHA        <- 0.05 # Significância (5%)
+
+# Parâmetros do Algoritmo (Equipe F)
+recpars1 <- list(name = "recombination_blxAlphaBeta", alpha = 0, beta = 0)
+mutpars1 <- list(name = "mutation_rand", f = 4)
+recpars2 <- list(name = "recombination_exp", cr = 0.6)
+mutpars2 <- list(name = "mutation_best", f = 2)
+selpars  <- list(name = "selection_standard")
+
+# ==============================================================================
+# 3. PLANEJAMENTO E PREPARAÇÃO
+# ==============================================================================
+# Cálculo do número de blocos (dimensões) necessários
+pwr_res <- pwr.t.test(d = EFFECT_SIZE, sig.level = ALPHA, power = POWER,
+                      type = "paired", alternative = "two.sided")
+N_blocos <- ceiling(pwr_res$n)
+
+# Sorteio das dimensões
+dims_teste <- sort(sample(2:150, N_blocos, replace = FALSE))
+
+# Mostra informações no console antes de começar
+message("=== INÍCIO DA SIMULAÇÃO ===")
+message(paste("Dimensões sorteadas:", paste(dims_teste, collapse=", ")))
+message(paste("Total de execuções previstas:", N_blocos * N_REPETICOES * 2))
+
+# Dataframe para resultados finais (Médias)
+dados_sim <- data.frame(dim = integer(N_blocos),
+                        Fbest_media_cfg1 = numeric(N_blocos),
+                        Fbest_media_cfg2 = numeric(N_blocos))
+
+# ==============================================================================
+# 4. LOOP DE EXECUÇÃO (PRINCIPAL)
+# ==============================================================================
+# Barra de progresso (será exibida apenas no console do R, não no PDF)
+pb <- txtProgressBar(min = 0, max = N_blocos, style = 3)
+
+for (i in 1:N_blocos) {
+  D <- dims_teste[i]
+
+  # Setup da função Rosenbrock para dimensão D
+  smoof_fn <- makeRosenbrockFunction(dimensions = D)
+  fn_wrap <- function(X) {
+    if(!is.matrix(X)) X <- matrix(X, nrow=1)
+    apply(X, 1, smoof_fn)
+  }
+
+  # Parâmetros de execução para esta dimensão
+  probpars <- list(name = "fn_wrap", xmin = rep(-5, D), xmax = rep(10, D))
+  stopcrit <- list(names = "stop_maxeval", maxevals = 5000 * D, maxiter = 100 * D)
+  pop_sz   <- 5 * D
+
+  # Variáveis temporárias para as 30 repetições
+  reps_c1 <- numeric(N_REPETICOES)
+  reps_c2 <- numeric(N_REPETICOES)
+
+  # Loop interno (repetições para reduzir ruído)
+  for (j in 1:N_REPETICOES) {
+    # Cfg1
+    # capture.output esconde o texto que o ExpDE joga no console
+    invisible(capture.output({
+      out1 <- ExpDE(mutpars=mutpars1, recpars=recpars1, popsize=pop_sz, selpars=selpars,
+                    stopcrit=stopcrit, probpars=probpars, showpars=list(show.iters="none"))
+    }))
+    reps_c1[j] <- out1$Fbest
+
+    # Cfg2
+    invisible(capture.output({
+      out2 <- ExpDE(mutpars=mutpars2, recpars=recpars2, popsize=pop_sz, selpars=selpars,
+                    stopcrit=stopcrit, probpars=probpars, showpars=list(show.iters="none"))
+    }))
+    reps_c2[j] <- out2$Fbest
+  }
+
+  # Salva as MÉDIAS no dataframe principal
+  dados_sim$dim[i] <- D
+  dados_sim$Fbest_media_cfg1[i] <- mean(reps_c1)
+  dados_sim$Fbest_media_cfg2[i] <- mean(reps_c2)
+
+  setTxtProgressBar(pb, i)
+}
+close(pb)
+
+# ==============================================================================
+# 5. FINALIZAÇÃO
+# ==============================================================================
+write.csv(dados_sim, "dados_EC03_medias.csv", row.names = FALSE)
+message(">>> SIMULAÇÃO CONCLUÍDA! Dados salvos em 'dados_EC03_medias.csv' <<<")
