@@ -1,0 +1,186 @@
+---
+title: "Análise Experimental: Comparação de Configurações (Equipe F)"
+author: "Equipe F"
+date: "`r format(Sys.time(), '%d/%m/%Y')`"
+output:
+  pdf_document:
+    fig_caption: yes
+    number_sections: yes
+  html_document:
+    df_print: paged
+fontsize: 11pt
+geometry: margin=1in
+header-includes:
+   - \usepackage{booktabs}
+   - \usepackage{placeins}
+---
+
+\begin{center}
+\begin{tabular}{ccc}
+\textbf{Bernardo Bacha} & \textbf{Gustavo Reis} & \textbf{Marília Melo} \\
+\textnormal{bernardobr@ufmg.br} & \textnormal{augustogustavo94@gmail.com} & \textnormal{mariliamacedomelo@gmail.com} \\
+\end{tabular}
+\end{center}
+
+```{r setup, include=FALSE}
+# --- Configuração Global dos Chunks ---
+# out.width = "100%" força a imagem a caber na largura da página do PDF
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE,
+                      fig.width = 7, fig.height = 4,
+                      fig.align = "center",	fig.pos = "H",
+                      out.width = "100%")
+
+# --- Verificação e Instalação de Pacotes ---
+pkgs <- c("ggplot2", "knitr", "kableExtra", "car", "multcomp", "xtable")
+new_pkgs <- pkgs[!(pkgs %in% installed.packages()[,"Package"])]
+if(length(new_pkgs)) install.packages(new_pkgs, repos = "[https://cloud.r-project.org](https://cloud.r-project.org)")
+invisible(lapply(pkgs, library, character.only = TRUE))
+
+# Tema padrão para os gráficos ggplot2
+theme_set(theme_bw() + theme(text = element_text(size = 12)))
+```
+
+# Introdução
+
+Este relatório tem como objetivo verificar estatisticamente se existem diferenças significativas de desempenho entre duas configurações do algoritmo de **Evolução Diferencial (DE)** aplicadas à função **Rosenbrock**.
+
+As configurações avaliadas foram:
+- **Cfg1**: Recombinação *mmax* ($\lambda=0.25$) e Mutação *best* ($f=4$).
+- **Cfg2**: Recombinação *npoint* ($N=dim/2$) e Mutação *rand* ($f=2.2$).
+
+Utilizou-se um **projeto com blocagem**, onde a dimensão ($D$) do problema atua como fator de bloco. Esta abordagem é essencial para isolar a grande variabilidade natural causada pelo aumento da complexidade do problema (dimensão), permitindo uma comparação justa e focada apenas no efeito das configurações.
+
+# Metodologia Experimental
+
+O experimento foi conduzido considerando:
+- **Fator de interesse:** Configuração (`cfg1`, `cfg2`).
+- **Fator de bloco:** Dimensão do problema (`dim`), variando de 2 a 40.
+- **Variável resposta:** Melhor valor de função obtido (`Fbest`).
+
+O experimento totalizou 15 blocos. Em cada bloco, cada configuração foi executada 15 vezes para mitigar a estocasticidade do algoritmo, sendo a média dessas execuções utilizada como dado para a análise estatística.
+
+## Hipóteses Estatísticas
+
+O estudo avalia as seguintes hipóteses globais:
+- $H_0$: As configurações possuem desempenho médio equivalente ($\mu_1 = \mu_2$).
+- $H_1$: Existe diferença significativa no desempenho médio das configurações ($\mu_1 \neq \mu_2$).
+
+```{r load_data}
+# Leitura dos dados com verificação
+csv_file <- "dados_EC03.csv" 
+if (!file.exists(csv_file)) {
+  stop("ERRO CRÍTICO: Arquivo de dados não encontrado. Verifique o diretório de trabalho.")
+}
+dados_wide <- read.csv(csv_file, stringsAsFactors = FALSE)
+
+# Transformação para formato longo (necessário para ANOVA/Friedman no R)
+dados_long <- data.frame(
+  dim = factor(rep(dados_wide$dim, 2), ordered = TRUE),
+  Configuracao = factor(c(rep("cfg1", nrow(dados_wide)), 
+                          rep("cfg2", nrow(dados_wide)))),
+  Fbest = c(dados_wide$Fbest_media_cfg1, dados_wide$Fbest_media_cfg2)
+)
+```
+
+# Resultados e Discussão
+
+## Análise Exploratória
+
+A Figura 1 apresenta o comportamento das duas configurações ao longo das dimensões testadas. Observa-se visualmente que a `cfg1` (linha vermelha) tende a manter valores de função objetivo consistentemente menores que a `cfg2` (linha azul) na maioria dos blocos, sugerindo um desempenho superior na minimização da função.
+
+```{r plot_exploratorio, fig.cap="Desempenho médio (Fbest) por dimensão para cada configuração.", fig.height=5}
+ggplot(dados_long, aes(x = dim, y = Fbest, group = Configuracao, color = Configuracao)) +
+  geom_line(linewidth = 1.2, alpha = 0.8) +
+  geom_point(size = 3) +
+  scale_color_brewer(palette = "Set1") +
+  labs(x = "Dimensão do Problema (Bloco)", 
+       y = "Melhor Valor de Função (Média)", 
+       color = "Configuração") +
+  theme(legend.position = "top",
+        axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+## Modelagem Estatística e Verificação de Pressupostos
+
+Inicialmente, ajustou-se um modelo paramétrico de Análise de Variância (ANOVA) com blocagem. A validade deste modelo depende do atendimento aos pressupostos de normalidade e homocedasticidade (variância constante) dos resíduos.
+
+```{r anova_model, results='hide'}
+modelo_aov <- aov(Fbest ~ Configuracao + dim, data = dados_long)
+residuos <- residuals(modelo_aov)
+```
+
+A Figura 2 apresenta os diagnósticos visuais do modelo. O gráfico de *Resíduos vs Ajustados* exibe um forte padrão em "U", indicando não-linearidade e heterocedasticidade. O *Histograma dos Resíduos* confirma a falta de normalidade, apresentando uma distribuição assimétrica.
+
+```{r diag_plots, fig.width=9, fig.height=3.5, fig.cap="Diagnóstico visual dos resíduos: (Esq) Resíduos vs Ajustados; (Centro) Q-Q Plot; (Dir) Histograma."}
+# Layout de 3 gráficos lado a lado.
+# Reduzi fig.width para 9 para garantir que o texto não fique ilegível ao redimensionar para 100%
+par(mfrow = c(1, 3), mar = c(4, 4, 2, 1))
+plot(modelo_aov, which = 1, caption = "", main = "Resíduos vs Ajustados")
+plot(modelo_aov, which = 2, caption = "", main = "Normal Q-Q")
+hist(residuos, main = "Histograma dos Resíduos", xlab = "Resíduos", 
+     col = "lightblue", border = "white", breaks = 10)
+par(mfrow = c(1, 1))
+```
+
+Os testes formais confirmaram as violações visuais: embora Shapiro-Wilk não tenha rejeitado a normalidade no limiar de 5% ($p > 0.05$), o Teste de Levene indicou uma violação severa da homocedasticidade ($p < 0.01$), tornando a ANOVA paramétrica inadequada.
+
+## Análise Não Paramétrica (Teste de Friedman)
+
+Devido à violação dos pressupostos, optou-se pelo **Teste de Friedman**, que é robusto a essas violações por utilizar postos.
+
+```{r friedman}
+friedman_res <- friedman.test(Fbest ~ Configuracao | dim, data = dados_long)
+```
+
+O teste indicou uma diferença altamente significativa entre as configurações ($\chi^2 = `r friedman_res$statistic`, p < 0.001$), levando à rejeição da hipótese nula ($H_0$).
+
+Para quantificar essa diferença, a Tabela 1 apresenta as medianas de desempenho de cada configuração e o resultado do teste pós-hoc de Wilcoxon (com correção de Bonferroni), que confirmou a diferença significativa ($p < 0.001$).
+
+```{r wilcox_medians}
+# Teste pós-hoc (corrigido para pegar o único valor da matriz 1x1)
+wilcox_p <- pairwise.wilcox.test(dados_long$Fbest, dados_long$Configuracao,
+                                 p.adjust.method = "bonferroni", 
+                                 paired = TRUE, exact = FALSE)$p.value[1,1]
+
+# Cálculo das medianas para tabela final
+medians <- aggregate(Fbest ~ Configuracao, data = dados_long, FUN = median)
+colnames(medians) <- c("Configuração", "Mediana Global (Fbest)")
+
+# Adiciona uma coluna com o p-valor do pós-hoc
+medians$P_valor_Wilcoxon <- c("-", format.pval(wilcox_p, digits = 3, eps = 0.001))
+
+kable(medians, caption = "Mediana do desempenho e teste comparativo.", 
+      digits = 2, booktabs = TRUE, align = 'lcc') %>%
+  kable_styling(latex_options = "hold_position", full_width = FALSE)
+```
+
+A **Configuração 1** obteve uma mediana de aproximadamente **42.093**, enquanto a Configuração 2 obteve **214.252**. Isso indica que a Cfg1 é cerca de 5 vezes mais eficaz em termos de valor mediano da função objetivo.
+
+# Conclusões
+
+O estudo comparativo entre as duas configurações do algoritmo DE para a função Rosenbrock, conduzido com rigoroso controle experimental por blocagem, permite concluir que:
+
+1.  **A escolha da configuração é crítica:** Existe uma diferença estatisticamente significativa ($p < 0.001$) no desempenho entre as configurações testadas. Utilizar a configuração inadequada pode levar a resultados drasticamente inferiores.
+2.  **Superioridade da Cfg1:** A Configuração 1 (`mmax`, $f=4$) demonstrou desempenho consistentemente superior na minimização da função, apresentando resultados medianos cinco vezes melhores que a Configuração 2.
+
+Portanto, recomenda-se fortemente a utilização da **Configuração 1** para problemas similares aos avaliados neste experimento.
+
+# Papéis desempenhados
+
+**Marília Melo**: Metodologia, Pesquisa, Design da
+apresentação de dados, Desenvolvimento, Redação  original; **Gustavo Reis**:
+Metodologia, Supervisão, Validação de dados e
+experimentos, Redação - revisão; **Bernardo Bacha**: Análise de dados,
+Metodologia, implementação e teste de software,
+Redação - revisão;
+
+## Referências
+[1] BESSANI, M. EEE933 - Estudo de Caso 3: UFMG, 2024.
+
+[2] Rosenbrock HH (1960). “An Automatic Method for Finding the Greatest or least Value of a Function.” Computer Journal, 3(3), 175–184.
+
+[3] CAMPELO, F.; TAKAHASHI, F. Sample size estimation for power and accuracy in the experimental comparison of algorithms. Journal of Heuristics, v. 25, n. 2, p. 305–338, 4 out. 2018.
+
+[4] CAMPELO, F. Lecture notes on design and analysis of experiments. Belo Horizonte: UFMG, 2014.
+
+[5] MONTGOMERY, D. C.; RUNGER, G. C. Applied statistics and probability for engineers. John Wiley and Sons, 2003.
