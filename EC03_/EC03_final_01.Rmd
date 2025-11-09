@@ -42,49 +42,81 @@ theme_set(theme_bw() + theme(text = element_text(size = 12)))
 
 # Introdução
 
-Este relatório tem como objetivo verificar estatisticamente se existem diferenças significativas de desempenho entre duas configurações do algoritmo de **Evolução Diferencial (DE)** aplicadas à função **Rosenbrock**.
+A otimização de problemas complexos é um pilar central em diversas áreas da engenharia, onde se busca encontrar a melhor solução possível (seja um custo mínimo ou um desempenho máximo) dentro de um vasto espaço de possibilidades. Para problemas não-lineares e de alta dimensionalidade, algoritmos de otimização estocásticos, como os baseados em populações, tornaram-se uma alternativa comum e robusta.
 
-As configurações avaliadas foram:
-- **Cfg1**: Recombinação *mmax* ($\lambda=0.25$) e Mutação *best* ($f=4$).
-- **Cfg2**: Recombinação *npoint* ($N=dim/2$) e Mutação *rand* ($f=2.2$).
+Um dos métodos mais proeminentes nesta categoria é a **Evolução Diferencial (DE)**. Proposta por Storn e Price, a DE é uma meta-heurística de otimização global que se destaca por sua simplicidade, eficiência e robustez na localização de ótimos globais, mesmo em paisagens de custo complexas. Similar a outros algoritmos evolutivos, a DE opera sobre uma população de soluções candidatas. Seu mecanismo central, no entanto, é o que lhe dá o nome: ela utiliza a **diferença vetorial** entre soluções aleatoriamente selecionadas da população para criar novos vetores candidatos (um processo chamado "mutação"). Estes novos vetores são então combinados com vetores existentes ("recombinação") e, se apresentarem um desempenho melhor, sobrevivem para a próxima geração ("seleção").
 
-Utilizou-se um **projeto com blocagem**, onde a dimensão ($D$) do problema atua como fator de bloco. Esta abordagem é essencial para isolar a grande variabilidade natural causada pelo aumento da complexidade do problema (dimensão), permitindo uma comparação justa e focada apenas no efeito das configurações.
+O desempenho de um algoritmo DE é, portanto, intrinsecamente ligado à estratégia exata usada para seus operadores de mutação e recombinação. Diferentes estratégias podem ser mais adequadas para diferentes tipos de problemas. Este relatório investiga exatamente essa questão, realizando uma comparação estatística rigorosa entre duas configurações de DE:
 
-# Metodologia Experimental
+* **Cfg1:** Recombinação `mmax` $(\lambda=0.25)$ e Mutação `best` $(f=4)$.
+* **Cfg2:** Recombinação `npoint` $(N=dim/2)$ e Mutação `rand` $(f=2.2)$.
+
+Para avaliar qual configuração é superior, ambas foram aplicadas a um problema de teste de desempenho clássico: a **Função de Rosenbrock**. A Função de Rosenbrock é um *benchmark* notório no mundo da otimização. A função de Rosenbrock é não-convexa e sua principal dificuldade reside no fato de que o seu mínimo global (0) se encontra dentro de um vale parabólico, longo, estreito e quase plano. É trivial para a maioria dos algoritmos *encontrar* este vale, mas extremamente difícil *convergir* para o mínimo global dentro dele, tornando-a um teste excelente para a capacidade de "exploração fina" e convergência de um algoritmo.
+
+O Estudo de Caso 03 (EC03) define esta classe de problemas como funções Rosenbrock de dimensão 2 a 150. Como o desempenho é drasticamente afetado pela dimensionalidade, este estudo utiliza um **projeto experimental com blocagem**, onde cada dimensão (instância) atua como um "bloco". Esta abordagem é essencial para isolar a variabilidade causada pela complexidade do problema, permitindo uma comparação justa e focada apenas no efeito das configurações do algoritmo.
+
+Este relatório detalha a metodologia de teste, desde a análise de poder para definição do tamanho amostral (N=34 blocos) até a análise estatística dos resultados, culminando em uma recomendação final sobre a configuração mais eficaz.
+
+# 2 Metodologia Experimental
 
 O experimento foi conduzido considerando:
-- **Fator de interesse:** Configuração (`cfg1`, `cfg2`).
-- **Fator de bloco:** Dimensão do problema (`dim`), variando de 2 a 40.
-- **Variável resposta:** Melhor valor de função obtido (`Fbest`).
+* **Fator de interesse:** Configuração (`cfg1`, `cfg2`).
+* **Fator de bloco:** Dimensão do problema (`dim`), amostrada aleatoriamente.
+* **Variável resposta:** Melhor valor de função obtido (`Fbest`).
 
-A determinação inicial do número ideal de blocos baseou-se em uma análise de poder estatístico (power analysis) aplicada a testes t pareados, que indicou a necessidade de 34 blocos para assegurar uma sensibilidade adequada (poder $\ge 0.8$) na detecção de diferenças significativas entre as configurações, minimizando erros do Tipo II.
+A estratégia de **blocagem** é fundamental neste contexto. O tratamento de cada dimensão como um bloco permite isolar a variabilidade intrínseca ao tamanho do problema, garantindo que as configurações sejam comparadas sob as mesmas condições de dificuldade.
 
-A estratégia de blocagem é fundamental neste contexto devido ao impacto severo da dimensionalidade na complexidade da função objetivo. O tratamento de cada dimensão como um bloco permite isolar a variabilidade intrínseca ao tamanho do problema, garantindo que as configurações sejam comparadas sob as mesmas condições de dificuldade.
+Para cada bloco selecionado, foram executadas **30 repetições** (`N=30`) de cada configuração. Este número é uma prática padrão em comparações experimentais e é suficiente para que a **média** dessas execuções seja uma medida de desempenho central robusta (conforme Teorema Central do Limite), estabilizando a observação de cada bloco.
 
-Contudo, restrições práticas de custo computacional inviabilizaram a execução de experimentos cobrindo todo o espectro de 149 dimensões possíveis. Buscando um compromisso entre o rigor estatístico e a viabilidade prática, optou-se por selecionar as 34 dimensões (blocos) sugeridas pela análise de poder dentro do intervalo entre 2 e 40.Foram executadas 15 experimentos para cada bloco selecionado, utilizando-se a média dessas execuções como medida de desempenho central. A Figura 1 apresenta os dados obtidos.
+## 2.1 Cálculo Amostral (Análise de Poder)
 
-## Hipóteses Estatísticas
+Para determinar o número de blocos (instâncias) necessários, foi realizada uma análise de poder *a priori* para um **Teste t Pareado**, conforme os parâmetros definidos no EC03:
 
-#O estudo avalia as seguintes hipóteses globais:
-#- $H_0$: As configurações possuem desempenho médio equivalente ($\mu_1 = \mu_2$).
-#- $H_1$: Existe diferença significativa no desempenho médio das configurações ($\mu_1 \neq \mu_2$).
+* **Significância desejada ($\alpha$):** 0.05
+* **Potência mínima desejada ($1-\beta$):** 0.8
+* **Diferença mínima padronizada ($d^*$):** 0.5
 
-Seja $\tau_i$ o efeito da configuração $i$ no desempenho médio do algoritmo. As hipóteses globais do teste são:$$\begin{cases}
-H_0: \tau_i = 0 \\
-H_1: \exists \tau_i \neq 0
-\end{cases}
-$$A hipótese nula ($H_0$) afirma que não há diferença significativa no desempenho entre as diferentes configurações (o efeito de qualquer escolha é nulo). Frente à rejeição de $H_0$, realiza-se uma comparação par a par para definir a melhor configuração. Neste caso específico com duas configurações:
+O cálculo foi realizado em R usando o pacote `pwr`:
+
+```{r power_analysis, echo=TRUE}
+# Cálculo de poder para um teste t pareado
+pwr_calc <- pwr::pwr.t.test(d = 0.5, 
+                            sig.level = 0.05, 
+                            power = 0.8,
+                            type = "paired", 
+                            alternative = "two.sided")
+
+print(pwr_calc)
+
+n_blocos <- ceiling(pwr_calc$n)
+cat(paste("\nNúmero de blocos (N) necessário:", n_blocos))
+```
+
+O resultado indica a necessidade de `n = 33.37` blocos. Como o número de blocos deve ser inteiro, arredondamos para cima, definindo o tamanho amostral do experimento como **N = 34 blocos**.
+
+Portanto, para representar a classe completa de problemas (dimensões de 2 a 150), as **34 dimensões (blocos)** foram **amostradas aleatoriamente do intervalo [2, 150]**.
+
+## 2.2 Hipóteses Estatísticas
+
+Como o delineamento experimental é pareado, a análise estatística foca no vetor de **diferenças** $D$ entre as observações de cada par:
+
+$D_j = \text{Fbest}_{\text{cfg1}, j} - \text{Fbest}_{\text{cfg2}, j}$ (para cada dimensão $j$)
+
+A hipótese nula ($H_0$) é que a média (ou mediana) populacional dessas diferenças ($\mu_D$) é zero, indicando que não há diferença de desempenho entre as configurações. A hipótese alternativa ($H_1$) é que a média das diferenças não é zero.
+
+As hipóteses do teste são:
 
 $$
-\begin{cases} H_0: \mu_{\text{1}}-\mu_{\text{2}} = 0 \\ 
-H_1: \mu_{\text{1}}-\mu_{\text{2}}\neq 0
+\begin{cases} 
+H_0: \mu_D = 0 \\ 
+H_1: \mu_D \neq 0 
 \end{cases}
 $$
 
 
 ```{r load_data}
 # Leitura dos dados com verificação
-csv_file <- "dados_EC03.csv" 
+csv_file <- "dados_EC03_basecompleta_2-150.csv" 
 if (!file.exists(csv_file)) {
   stop("ERRO CRÍTICO: Arquivo de dados não encontrado. Verifique o diretório de trabalho.")
 }
@@ -117,96 +149,96 @@ ggplot(dados_long, aes(x = dim, y = Fbest, group = Configuracao, color = Configu
         axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-## Modelagem Estatística e Verificação de Pressupostos
+## 3.2 Verificação de Pressupostos (Análise Pareada)
 
-Inicialmente, ajustou-se um modelo paramétrico de Análise de Variância (ANOVA) com blocagem. A validade deste modelo depende do atendimento aos pressupostos de normalidade e homocedasticidade (variância constante) dos resíduos.
+Para um delineamento pareado, o teste paramétrico (Teste t Pareado) exige que o vetor das **diferenças** entre os pares siga uma distribuição normal. Verificamos este pressuposto com o teste de Shapiro-Wilk e um gráfico Q-Q sobre o vetor de diferenças.
 
+```{r verificar_pressupostos_pareado, fig.cap="Diagnóstico de Normalidade do Vetor de Diferenças (Cfg1 - Cfg2).", fig.width=9, fig.height=4, echo=FALSE}
+# Criar o vetor de diferenças a partir dos dados carregados
+# (Assumindo que 'dados_wide' existe do chunk 'load_data')
+dados_wide$Diferenca <- dados_wide$Fbest_media_cfg1 - dados_wide$Fbest_media_cfg2
 
+# 1. Teste de Shapiro-Wilk nas *diferenças*
+shapiro_res <- shapiro.test(dados_wide$Diferenca)
+print(shapiro_res)
 
-```{r anova_model, results='hide'}
-modelo_aov <- aov(Fbest ~ Configuracao + dim, data = dados_long)
-residuos <- residuals(modelo_aov)
-```
+# 2. Gráficos de Diagnóstico das *diferenças*
+par(mfrow = c(1, 2))
+car::qqPlot(dados_wide$Diferenca, 
+            main = "Q-Q Plot das Diferenças",
+            ylab = "Quantis Observados", xlab = "Quantis Teóricos",
+            pch = 19, col = "blue", id = FALSE)
 
-A Figura 2 apresenta os diagnósticos visuais do modelo. O gráfico de *Resíduos vs Ajustados* exibe um forte padrão em "U", indicando não-linearidade e heterocedasticidade. O *Histograma dos Resíduos* confirma a falta de normalidade, apresentando uma distribuição assimétrica.
-
-```{r diag_plots, fig.width=9, fig.height=3.5, fig.cap="Diagnóstico visual dos resíduos: (Esq) Resíduos vs Ajustados; (Centro) Q-Q Plot; (Dir) Histograma."}
-# Layout de 3 gráficos lado a lado.
-# Reduzi fig.width para 9 para garantir que o texto não fique ilegível ao redimensionar para 100%
-par(mfrow = c(1, 3), mar = c(4, 4, 2, 1))
-plot(modelo_aov, which = 1, caption = "", main = "Resíduos vs Ajustados")
-plot(modelo_aov, which = 2, caption = "", main = "Normal Q-Q")
-hist(residuos, main = "Histograma dos Resíduos", xlab = "Resíduos", 
-     col = "lightblue", border = "white", breaks = 10)
+hist(dados_wide$Diferenca, main = "Histograma das Diferenças", 
+     xlab = "Diferença (Cfg1 - Cfg2)", 
+     col = "lightblue", border = "white", breaks = 15)
 par(mfrow = c(1, 1))
-
 ```
 
-```{r tabela}
-# Testes formais
-shapiro_res <- shapiro.test(residuos)
-levene_res <- car::leveneTest(Fbest ~ Configuracao, data = dados_long)
+O teste de Shapiro-Wilk (`p < 0.001`) e os gráficos de diagnóstico (Figura 2) rejeitam fortemente a hipótese de normalidade para o vetor de diferenças. Portanto, o Teste t Pareado é inválido.
 
-# Tabela resumo automática
-diag_tab <- data.frame(
-Teste = c("Shapiro-Wilk (Normalidade)", "Levene (Homocedasticidade)"),
-Estatistica = c(shapiro_res$statistic, levene_res$`F value`[1]),
-p_valor = c(shapiro_res$p.value, levene_res$`Pr(>F)`[1])
-)
+## 3.3 Análise Estatística (Teste de Wilcoxon Pareado)
 
-# Formatação da tabela
-knitr::kable(diag_tab, 
-col.names = c("Teste", "Estatística", "p-valor"),
-align = c("l", "c", "c"),
-caption = "Verificação dos pressupostos da ANOVA.",
-booktabs = TRUE, 
-digits = 4) %>%
-kableExtra::kable_styling(latex_options = "hold_position")
+Devido à violação do pressuposto de normalidade, utilizamos a alternativa não paramétrica correta para dados pareados: o **Teste de Wilcoxon Pareado**. Este teste avalia se a *mediana* das diferenças é significativamente diferente de zero, sem assumir uma distribuição específica para os dados.
+
+```{r wilcoxon_test, echo=FALSE}
+# Este é o teste principal. 
+# Note o 'paired = TRUE' e 'conf.int = TRUE'
+wilcox_res <- wilcox.test(dados_long$Fbest ~ dados_long$Configuracao, 
+                          data = dados_long,
+                          paired = TRUE, 
+                          alternative = "two.sided", 
+                          conf.int = TRUE)
+
+print(wilcox_res)
 ```
 
+O teste de Wilcoxon Pareado indicou uma diferença altamente significativa entre as configurações (V = 0, p < 0.001), levando à rejeição da hipótese nula (H0).
 
-O teste de Shapiro-Wilk rejeitou a normalidade ($p < 0.05$), e teste de Levene indicou violação severa da homocedasticidade ($p < 0.05$). A análise gráfica dos resíduos (Figura 2) corrobora este diagnóstico, apresentando um padrão claro em "U" no gráfico de Resíduos vs. Ajustados, o que compromete a confiabilidade dos resultados da ANOVA paramétrica.
+Para quantificar a magnitude desta diferença, analisamos as medianas globais de desempenho (Tabela 1) e o intervalo de confiança para a mediana das diferenças (pseudo-mediana) calculado pelo teste de Wilcoxon.
 
-## Análise Não Paramétrica (Teste de Friedman)
-
-Devido à violação dos pressupostos, optou-se pelo **Teste de Friedman**, que é robusto a essas violações por utilizar postos.
-
-```{r friedman}
-friedman_res <- friedman.test(Fbest ~ Configuracao | dim, data = dados_long)
-```
-
-O teste indicou uma diferença altamente significativa entre as configurações ($\chi^2 = `r friedman_res$statistic`, p < 0.001$), levando à rejeição da hipótese nula ($H_0$).
-
-Para quantificar essa diferença, a Tabela 2 apresenta as medianas de desempenho de cada configuração e o resultado do teste pós-hoc de Wilcoxon (com correção de Bonferroni), que confirmou a diferença significativa ($p < 0.001$).
-
-```{r wilcox_medians}
-# Teste pós-hoc (corrigido para pegar o único valor da matriz 1x1)
-wilcox_p <- pairwise.wilcox.test(dados_long$Fbest, dados_long$Configuracao,
-                                 p.adjust.method = "bonferroni", 
-                                 paired = TRUE, exact = FALSE)$p.value[1,1]
-
-# Cálculo das medianas para tabela final
+```{r median_table, echo=FALSE}
+# Criar a Tabela de Medianas
 medians <- aggregate(Fbest ~ Configuracao, data = dados_long, FUN = median)
-colnames(medians) <- c("Configuração", "Mediana Global (Fbest)")
-
-# Adiciona uma coluna com o p-valor do pós-hoc
-medians$P_valor_Wilcoxon <- c("-", format.pval(wilcox_p, digits = 3, eps = 0.001))
-
-kable(medians, caption = "Mediana do desempenho e teste comparativo.", 
-      digits = 2, booktabs = TRUE, align = 'lcc') %>%
-  kable_styling(latex_options = "hold_position", full_width = FALSE)
+knitr::kable(medians, 
+             col.names = c("Configuração", "Mediana Global (Fbest)"),
+             digits = 0, booktabs = TRUE, 
+             caption = "Mediana do desempenho por configuração.") %>%
+  kable_styling(latex_options = "hold_position")
 ```
 
-A **Configuração 1** obteve uma mediana de aproximadamente **42.093**, enquanto a Configuração 2 obteve **214.252**. Isso indica que a Cfg1 é cerca de 5 vezes mais eficaz em termos de valor mediano da função objetivo.
 
-# Conclusões
 
-O estudo comparativo entre as duas configurações do algoritmo DE para a função Rosenbrock, conduzido com rigoroso controle experimental por blocagem, permite concluir que:
+# 4 Conclusões
 
-1.  **A escolha da configuração é crítica:** Existe uma diferença estatisticamente significativa ($p < 0.001$) no desempenho entre as configurações testadas. Utilizar a configuração inadequada pode levar a resultados drasticamente inferiores.
-2.  **Superioridade da Cfg1:** A Configuração 1 (`mmax`, $f=4$) demonstrou desempenho consistentemente superior na minimização da função, apresentando resultados medianos cinco vezes melhores que a Configuração 2.
+O estudo comparativo entre as duas configurações do algoritmo DE para a função Rosenbrock, conduzido com rigoroso controle experimental por blocagem (N=34 blocos), permite extrair conclusões robustas e definitivas sobre o desempenho dos algoritmos.
 
-Portanto, recomenda-se fortemente a utilização da **Configuração 1** para problemas similares aos avaliados neste experimento.
+1.  **Diferença Estatística Inequívoca:**
+    A análise confirmou que a escolha da configuração é crítica. A hipótese nula ($H_0$), que afirmava não haver diferença entre as configurações, foi rejeitada de forma conclusiva. O Teste de Wilcoxon Pareado (utilizado devido à não normalidade das diferenças) produziu um p-valor de **1.164e-10** (essencialmente zero). Sendo este valor muito inferior ao nível de significância $\alpha = 0.05$, há uma evidência estatística esmagadora de que o desempenho das duas configurações não é o mesmo.
+
+2.  **Consistência e Dominância da Cfg1:**
+    A força dessa conclusão é explicada pela estatística de teste **V = 0**. Em um Teste de Wilcoxon Pareado, este é o resultado mais extremo possível. Ele significa que em **todos os 34 blocos** (ou seja, em todas as 34 dimensões testadas, de 2 a 150), a Configuração 1 apresentou um desempenho melhor que a Configuração 2, sem uma única exceção. Isso não é apenas uma "diferença média"; é uma dominância completa da Cfg1 sobre a Cfg2 em todo o espectro de problemas testado.
+
+3.  **Magnitude da Superioridade da Cfg1:**
+    A Configuração 1 (`mmax`, $f=4$) é consistentemente superior na minimização da função (onde valores menores são melhores). A Tabela 1 mostra que a mediana global do `Fbest` da Cfg1 foi de **1.127.775**, enquanto a mediana da Cfg2 foi **3.297.249**. Isso indica que a Cfg1 é, em termos medianos, aproximadamente **2.9 vezes mais eficaz**.
+
+    O teste de Wilcoxon quantifica esta diferença: a estimativa da mediana das diferenças (pseudo-mediana) é de **-2.645.740**. Isso significa que, em média, espera-se que a Cfg1 produza um resultado 2.6 milhões de unidades melhor (menor) que a Cfg2. O intervalo de confiança de 95% para esta diferença é de **[-3.616.985, -1.787.849]**. O fato de o intervalo de confiança estar inteiramente abaixo de zero e muito distante dele reforça a certeza de que a Cfg1 é, de forma robusta, a melhor escolha.
+
+**Recomendação Final:**
+Portanto, os resultados não deixam dúvidas. Recomenda-se fortemente a utilização da **Configuração 1** para problemas similares aos avaliados neste experimento.
+
+# Limitações do Estudo
+
+Embora a análise metodológica tenha sido rigorosa, é importante reconhecer as fronteiras das conclusões deste estudo. Identificamos três limitações principais que não invalidam os resultados, mas definem seu escopo:
+
+1.  **Foco na Qualidade Final vs. Velocidade de Convergência:**
+    O experimento foi desenhado para medir a *qualidade final* da solução (`Fbest`) após um orçamento fixo de avaliações (30 execuções de `5000 * D` avaliações cada). O estudo prova conclusivamente que a Cfg1 é 3x melhor no final. No entanto, o estudo não mediu a **velocidade de convergência**. É possível que a Cfg2 (mesmo sendo pior no final) encontre uma solução "boa o suficiente" muito mais rápido. Para aplicações onde o tempo de resposta é o fator crítico, uma análise do desempenho ao longo do tempo seria necessária.
+
+2.  **Métrica de Desempenho (Média vs. Variabilidade):**
+    O estudo utilizou a **média** das 30 repetições como a observação central para cada bloco, alinhando-se com o objetivo do EC03 de avaliar o "desempenho médio". Esta abordagem, contudo, agrega a variabilidade "run-to-run" e oculta a **robustez** de cada algoritmo. Não podemos afirmar, por exemplo, se a Cfg1 foi consistentemente boa em todas as 30 execuções, ou se teve um desempenho médio melhor, mas com uma variância maior (menor confiabilidade) do que a Cfg2.
+
+3.  **Custo Computacional (Avaliações vs. Tempo de Relógio):**
+    A comparação foi baseada em um orçamento idêntico de "avaliações de função". No entanto, as operações das duas configurações têm custos computacionais muito diferentes. A Cfg1 usa `mutation_best`, que exige que o algoritmo, a cada passo, encontre o melhor indivíduo da população — uma operação mais custosa (em tempo de relógio) do que a `mutation_rand` da Cfg2, que apenas sorteia vetores. Portanto, o estudo prova que a Cfg1 é mais *eficiente* (dá um resultado melhor para o mesmo número de avaliações), mas ela é quase certamente mais *lenta* em segundos (tempo real).
 
 # Papéis desempenhados
 

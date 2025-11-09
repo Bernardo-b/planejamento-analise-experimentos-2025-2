@@ -1,0 +1,197 @@
+---
+title: "Estudo de Caso 03 - Geração de Dados (Equipe F)"
+author: "Equipe F"
+date: "`r format(Sys.Date(), '%d/%m/%Y')`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+# --- Chunk 1: Configuração Inicial ---
+# Este chunk define as configurações do RMarkdown e carrega as bibliotecas.
+
+knitr::opts_chunk$set(echo = TRUE)
+
+# Carregar bibliotecas necessárias para o experimento
+library(ExpDE)
+library(smoof)
+library(stats) # Para o power.t.test
+
+# DEFINIÇÃO DA SEMENTE GLOBAL
+# Isto garante que todo o experimento seja 100% reprodutível:
+# 1. O cálculo do tamanho amostral (se houver aleatoriedade futura).
+# 2. O sorteio das dimensões (N).
+# 3. Todas as 2040 execuções do ExpDE.
+set.seed(42)
+
+
+# --- Chunk 2: Cálculo de N e definição de R ---
+
+# --- Parâmetros do EC03 para o cálculo ---
+alpha <- 0.05      # Nível de significância (risco de Erro Tipo I)
+potencia <- 0.80   # Potência (1 - beta) (chance de detectar efeito real)
+d_star <- 0.5      # Tamanho do efeito padronizado (diferença mínima)
+
+# --- Cálculo de N (Número de Instâncias/Blocos) ---
+# Usamos "one.sample" pois o teste t-pareado é estatisticamente 
+# equivalente a um teste t de uma amostra sobre as diferenças (Slide 06).
+# Usamos "two.sided" pois H1 é (mu != 0).
+n_calc <- power.t.test(power = potencia,
+                       delta = d_star,
+                       sd = 1, # sd=1 pois d_star (delta) já é padronizado
+                       sig.level = alpha,
+                       type = "one.sample", 
+                       alternative = "two.sided")
+
+# N = Número de Instâncias (Blocos)
+# Arredondamos para CIMA para garantir a potência mínima exigida.
+N <- ceiling(n_calc$n)
+
+# --- Definição de R (Repetições por Instância) ---
+# O algoritmo DE é aleatório. Para ter um valor confiável do seu desempenho
+# em uma 'dim', rodamos R vezes e tiramos a média.
+# R=30 é um valor robusto, justificado pelo exemplo no Slide 10_Blocagem.
+R <- 30 
+
+# --- Sorteio das Instâncias ---
+# Sortear as N dimensões (nossos blocos) do intervalo [2, 150]
+dims <- sort(sample(2:150, N, replace = FALSE))
+
+# --- Resumo do Planejamento ---
+cat(paste("--- Planejamento Experimental (Etapa 2) ---\n"))
+cat(paste("Significância (alpha):", alpha, "\n"))
+cat(paste("Potência (1-beta):", potencia, "\n"))
+cat(paste("Tamanho do efeito (d*):", d_star, "\n"))
+cat(paste("-------------------------------------------\n"))
+cat(paste("Número de instâncias (N) calculado:", round(n_calc$n, 3), "\n"))
+cat(paste("Número de instâncias (N) a ser usado:", N, "\n"))
+cat(paste("Número de repetições por instância (R):", R, "\n"))
+cat(paste("Total de otimizações a rodar:", N * R * 2, "\n"))
+
+
+
+# --- Chunk 3: Definição dos Parâmetros das Configurações ---
+
+# --- Parâmetros - Equipe F ---
+
+# Configuração 1 (estático)
+recpars1 <- list(name = "recombination_mmax", lambda = 0.25)
+mutpars1 <- list(name = "mutation_best", f = 4)
+
+# Configuração 2 (base)
+# recpars2 depende de 'dim', será definido no loop
+mutpars2 <- list(name = "mutation_rand", f = 2.2) 
+
+# Parâmetros de Seleção (Compartilhados)
+selpars <- list(name = "selection_standard")
+
+# Criar dataframe vazio para salvar os resultados
+df_res <- data.frame(Dim = integer(),
+                     Media_C1 = double(),
+                     Media_C2 = double(),
+                     Diferenca = double())
+
+cat(paste("Parâmetros da Equipe F definidos.\n"))
+
+
+# --- Chunk 4: Execução do Experimento ---
+# Este chunk pode demorar para rodar.
+# cache=TRUE: Se você rodar o .Rmd de novo sem mudar este código,
+# o RStudio usará os resultados salvos em vez de rodar tudo de novo.
+
+cat(paste("Iniciando a execução de (N * R * 2) =", N * R * 2, "otimizações...\n"))
+
+# Loop Principal (N=34 Blocos/Instâncias)
+for (dim_atual in dims) {
+  
+  cat(paste("--- Processando Bloco (Dim):", dim_atual, "---\n"))
+  
+  # --- 0. [!!! CORREÇÃO AQUI !!!] Definir a função 'fn' ---
+  # O 'probpars' procura uma função chamada "fn".
+  # Esta função 'fn' DEVE ser definida aqui, pois ela depende da 'dim_atual'.
+  # Este código é adaptado do PDF do EC03 (página 2).
+# ... (início do loop) ...
+  fn <- function(X) {
+    # ... (código da função fn) ...
+    return(Y)
+  }
+  
+  # --- 1. Definir parâmetros dependentes de 'dim' ---
+  popsize_atual <- 5 * dim_atual
+  
+  probpars_atual <- list(name = "fn", # Agora a função "fn" existe!
+                         xmin = rep(-5, dim_atual), 
+                         xmax = rep(10, dim_atual))
+  
+  # [!!! ADICIONE ESTE BLOCO DE CÓDIGO AQUI !!!]
+  # Esta é a definição do critério de parada, baseada no PDF do EC03.
+  # Ela depende da 'dim_atual'.
+  stopcrit_atual <- list(names = "stop_maxeval", 
+                         maxevals = 5000 * dim_atual, 
+                         maxiter = 100 * dim_atual)
+  
+  # Parametro da Config 2 que depende de 'dim'
+  recpars2_atual <- list(name = "recombination_npoint", N = dim_atual / 2)
+  
+  # --- 2. Loop Interno (R=30 Repetições) para Média da Config 1 ---
+  cat(paste("  Rodando Config 1 (R=30 vezes)...\n"))
+  resultados_c1 <- numeric(R) # Vetor para guardar os R resultados
+  
+  for (i in 1:R) {
+    out <- ExpDE(mutpars = mutpars1,
+                 recpars = recpars1,
+                 popsize = popsize_atual,
+                 selpars = selpars,
+                 stopcrit = stopcrit_atual,
+                 probpars = probpars_atual,
+                 showpars = list(show.iters = "none")) # 'none' para um log limpo
+    
+    resultados_c1[i] <- out$Fbest
+  }
+  Media_C1 <- mean(resultados_c1) # Média das R execuções
+  
+  # --- 3. Loop Interno (R=30 Repetições) para Média da Config 2 ---
+  cat(paste("  Rodando Config 2 (R=30 vezes)...\n"))
+  resultados_c2 <- numeric(R) # Vetor para guardar os R resultados
+  
+  for (i in 1:R) {
+    out <- ExpDE(mutpars = mutpars2,
+                 recpars = recpars2_atual,
+                 popsize = popsize_atual,
+                 selpars = selpars,
+                 stopcrit = stopcrit_atual,
+                 probpars = probpars_atual,
+                 showpars = list(show.iters = "none"))
+    
+    resultados_c2[i] <- out$Fbest
+  }
+  Media_C2 <- mean(resultados_c2) # Média das R execuções
+  
+  # --- 4. Calcular a Diferença (Pareamento) ---
+  diferenca <- Media_C1 - Media_C2
+  
+  # --- 5. Salvar a linha do Bloco ---
+  df_res <- rbind(df_res, data.frame(Dim = dim_atual,
+                                     Media_C1 = Media_C1,
+                                     Media_C2 = Media_C2,
+                                     Diferenca = diferenca))
+  
+  cat(paste("  Bloco", dim_atual, "concluído. Diferença:", round(diferenca, 2), "\n"))
+}
+
+cat("--- Execução do Experimento Concluída ---\n")
+
+
+# --- Chunk 5: Salvar Dados e Mostrar Amostra ---
+
+# Salva o dataframe final em um arquivo CSV no mesmo diretório
+# Usamos row.names = FALSE para um CSV limpo, sem a coluna de índices do R.
+write.csv(df_res, "data.csv", row.names = FALSE)
+
+cat("Arquivo 'data.csv' salvo com sucesso.\n\n")
+cat("Amostra dos dados coletados (primeiras 6 linhas):\n")
+print(head(df_res))
+
+cat("\nFormato (Estrutura) dos dados:\n")
+str(df_res)
+
+```
