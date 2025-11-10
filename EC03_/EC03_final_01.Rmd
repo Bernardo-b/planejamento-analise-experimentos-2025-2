@@ -1,7 +1,12 @@
 ---
-title: "Análise Experimental: Comparação de Configurações (Equipe F)"
-author: "Equipe F"
-date: "`r format(Sys.time(), '%d/%m/%Y')`"
+title: |
+  EEE933 - Planejamento e Análise de Experimentos
+  Estudo de Caso 03: Comparação de Configurações (Equipe F)
+author:
+  - "Bernardo Bacha\\thanks{PPGEE/UFMG — Relator do experimento - bernardobr@ufmg.br}"
+  - "Marília Melo\\thanks{PPGEE/UFMG — Verificador - mariliamacedomelo@gmail.com}"
+  - "Gustavo Reis\\thanks{PPGEE/UFMG — Revisor - augustogustavo94@gmail.com}"
+date: "`r format(Sys.Date(), '%d de %B de %Y')`"
 output:
   pdf_document:
     fig_caption: yes
@@ -13,6 +18,8 @@ geometry: margin=1in
 header-includes:
    - \usepackage{booktabs}
    - \usepackage{placeins}
+   - \usepackage{fvextra}
+   - \DefineVerbatimEnvironment{verbatim}{Verbatim}{breaklines, commandchars=\\\{\}}
 ---
 
 \begin{center}
@@ -24,16 +31,22 @@ header-includes:
 
 ```{r setup, include=FALSE}
 # --- Configuração Global dos Chunks ---
-# out.width = "100%" força a imagem a caber na largura da página do PDF
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE,
                       fig.width = 7, fig.height = 4,
                       fig.align = "center",	fig.pos = "H",
                       out.width = "100%")
 
 # --- Verificação e Instalação de Pacotes ---
-pkgs <- c("ggplot2", "knitr", "kableExtra", "car", "multcomp", "xtable")
+# Lista APENAS dos pacotes realmente usados no script:
+pkgs <- c("ggplot2", "knitr", "kableExtra", "car", "pwr")
+
 new_pkgs <- pkgs[!(pkgs %in% installed.packages()[,"Package"])]
-if(length(new_pkgs)) install.packages(new_pkgs, repos = "[https://cloud.r-project.org](https://cloud.r-project.org)")
+if(length(new_pkgs)) {
+  # URL corrigida (sem formatação Markdown)
+  install.packages(new_pkgs, repos = "[https://cloud.r-project.org](https://cloud.r-project.org)")
+}
+
+# Carrega todos os pacotes necessários
 invisible(lapply(pkgs, library, character.only = TRUE))
 
 # Tema padrão para os gráficos ggplot2
@@ -229,16 +242,18 @@ Portanto, os resultados não deixam dúvidas. Recomenda-se fortemente a utiliza�
 
 # Limitações do Estudo
 
-Embora a análise metodológica tenha sido rigorosa, é importante reconhecer as fronteiras das conclusões deste estudo. Identificamos três limitações principais que não invalidam os resultados, mas definem seu escopo:
+Embora a análise metodológica tenha sido rigorosa, é importante reconhecer as fronteiras das conclusões deste estudo. Identificamos duas limitações principais que não invalidam os resultados, mas definem seu escopo:
 
-1.  **Foco na Qualidade Final vs. Velocidade de Convergência:**
-    O experimento foi desenhado para medir a *qualidade final* da solução (`Fbest`) após um orçamento fixo de avaliações (30 execuções de `5000 * D` avaliações cada). O estudo prova conclusivamente que a Cfg1 é 3x melhor no final. No entanto, o estudo não mediu a **velocidade de convergência**. É possível que a Cfg2 (mesmo sendo pior no final) encontre uma solução "boa o suficiente" muito mais rápido. Para aplicações onde o tempo de resposta é o fator crítico, uma análise do desempenho ao longo do tempo seria necessária.
-
-2.  **Métrica de Desempenho (Média vs. Variabilidade):**
+1.  **Métrica de Desempenho (Média vs. Variabilidade):**
     O estudo utilizou a **média** das 30 repetições como a observação central para cada bloco, alinhando-se com o objetivo do EC03 de avaliar o "desempenho médio". Esta abordagem, contudo, agrega a variabilidade "run-to-run" e oculta a **robustez** de cada algoritmo. Não podemos afirmar, por exemplo, se a Cfg1 foi consistentemente boa em todas as 30 execuções, ou se teve um desempenho médio melhor, mas com uma variância maior (menor confiabilidade) do que a Cfg2.
 
-3.  **Custo Computacional (Avaliações vs. Tempo de Relógio):**
-    A comparação foi baseada em um orçamento idêntico de "avaliações de função". No entanto, as operações das duas configurações têm custos computacionais muito diferentes. A Cfg1 usa `mutation_best`, que exige que o algoritmo, a cada passo, encontre o melhor indivíduo da população — uma operação mais custosa (em tempo de relógio) do que a `mutation_rand` da Cfg2, que apenas sorteia vetores. Portanto, o estudo prova que a Cfg1 é mais *eficiente* (dá um resultado melhor para o mesmo número de avaliações), mas ela é quase certamente mais *lenta* em segundos (tempo real).
+2.  **Análise de Custo-Benefício (Eficiência vs. Tempo de Execução):**
+    O experimento foi desenhado para comparar as configurações sob um orçamento idêntico de **avaliações de função** (`5000 * D`). O estudo prova que a Cfg1 é 3x mais *eficiente* (alcança um resultado melhor com o mesmo número de avaliações).
+    
+    No entanto, esta métrica ignora o **custo computacional real (tempo de relógio)**. A operação `mutation_best` (Cfg1) é inerentemente mais lenta em segundos do que a `mutation_rand` (Cfg2), pois exige uma varredura da população a cada passo. O experimento não mediu:
+    
+    * **Tempo Total:** A Cfg1 quase certamente demorou muito mais segundos para completar o mesmo número de avaliações.
+    * **Desempenho por Tempo:** Se o orçamento fosse "rodar por 10 minutos", a Cfg2 (por ser mais rápida por avaliação) poderia ter executado 100x mais avaliações e talvez alcançado um resultado "bom o suficiente" ou até melhor. O estudo não permite concluir qual configuração é melhor sob um orçamento de *tempo* fixo.
 
 # Papéis desempenhados
 
@@ -259,3 +274,5 @@ Redação - revisão;
 [4] CAMPELO, F. Lecture notes on design and analysis of experiments. Belo Horizonte: UFMG, 2014.
 
 [5] MONTGOMERY, D. C.; RUNGER, G. C. Applied statistics and probability for engineers. John Wiley and Sons, 2003.
+
+[6] STORN, R.; PRICE, K. Differential evolution: A simple and efficient heuristic for global optimization over continuous spaces. Journal of Global Optimization, v. 11, n. 4, p. 341–359, 1997.
