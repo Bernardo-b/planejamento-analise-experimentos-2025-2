@@ -194,16 +194,14 @@ O teste de Shapiro-Wilk (`p < 0.001`) e os gráficos de diagnóstico (Figura 2) 
 
 Devido à violação do pressuposto de normalidade, utilizamos a alternativa não paramétrica correta para dados pareados: o **Teste de Wilcoxon Pareado**. Este teste avalia se a *mediana* das diferenças é significativamente diferente de zero, sem assumir uma distribuição específica para os dados.
 
-```{r wilcoxon_test, echo=FALSE}
+```{r wilcoxon.test, echo=FALSE}
 # Este é o teste principal. 
-# Note o 'paired = TRUE' e 'conf.int = TRUE'
-wilcox_res <- wilcox.test(dados_long$Fbest ~ dados_long$Configuracao, 
-                          data = dados_long,
-                          paired = TRUE, 
-                          alternative = "two.sided", 
-                          conf.int = TRUE)
+cfg1 <- dados_long$Fbest[dados_long$Configuracao == "cfg1"]
+cfg2 <- dados_long$Fbest[dados_long$Configuracao == "cfg2"]
+wilcox.test(cfg1, cfg2, paired = TRUE)
 
-print(wilcox_res)
+
+print(wilcox.test)
 ```
 
 O teste de Wilcoxon Pareado indicou uma diferença altamente significativa entre as configurações (V = 0, p < 0.001), levando à rejeição da hipótese nula (H0).
