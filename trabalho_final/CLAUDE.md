@@ -1,6 +1,6 @@
 # CLAUDE.md - Contexto do Projeto
 
-**Última Atualização:** 25/11/2025 19:30
+**Última Atualização:** 25/11/2025 20:45
 
 ---
 
@@ -239,6 +239,95 @@ Para validar os dados e obter métricas de referência, foi implementado um base
 
 ---
 
+## Otimização de Hiperparâmetros - SVM
+
+### Seção 9 do Notebook
+
+Implementação de 3 métodos de otimização de hiperparâmetros para comparação no experimento RCBD:
+
+**Métodos Implementados:**
+1. **GridSearch** (`grid_search_svm()`)
+   - Busca exaustiva em grid definido
+   - Grid quadrado: n_iter=16 → 4×4 = 16 combinações
+   - Ranges: C=[0.01, 1000], gamma=[0.0001, 10] (escala log)
+
+2. **RandomSearch** (`random_search_svm()`)
+   - Amostragem aleatória no espaço de busca
+   - n_iter combinações aleatórias
+   - Distribuição log-uniforme para C e gamma
+
+3. **BayesianOptimization** (`bayesian_search_svm()`)
+   - Otimização bayesiana com scikit-optimize (skopt)
+   - n_iter iterações usando Gaussian Process
+   - Exploração inteligente do espaço de busca
+
+**Configuração Comum:**
+- Modelo: SVM com kernel='rbf'
+- Hiperparâmetros otimizados: C e gamma
+- Mesmo budget (n_iter) para comparação justa
+- Sem cross-validation: treino direto em X_train, teste em X_test
+- Métricas retornadas: acuracia, precisao, recall, f1_score, tempo
+- Parâmetro verbose para silenciar prints em loops
+
+**Assinatura das Funções:**
+```python
+def grid_search_svm(X_train, y_train, X_test, y_test, n_iter=16, verbose=True):
+    # Retorna dict: metodo, best_params, acuracia, precisao, recall, f1_score, tempo
+
+def random_search_svm(X_train, y_train, X_test, y_test, n_iter=16, verbose=True):
+    # Retorna dict: metodo, best_params, acuracia, precisao, recall, f1_score, tempo
+
+def bayesian_search_svm(X_train, y_train, X_test, y_test, n_iter=16, verbose=True):
+    # Retorna dict: metodo, best_params, acuracia, precisao, recall, f1_score, tempo
+```
+
+---
+
+## Experimento RCBD Completo
+
+### Seção 10 do Notebook
+
+Implementação da estrutura completa do experimento RCBD com loops aninhados.
+
+**Configuração:**
+- **Blocos:** 5 datasets (Breast Cancer, Titanic, Water Potability, Employee, Weather)
+- **Repetições:** 7 seeds diferentes (1-7) para cada dataset
+- **Tratamentos:** 3 métodos de otimização (GridSearch, RandomSearch, BayesianOptimization)
+- **Total de experimentos:** 5 × 7 × 3 = **105 experimentos**
+
+**Estrutura dos Loops:**
+```python
+for dataset in datasets (5):
+    for seed in seeds (7):
+        # 1. Train/test split ESTRATIFICADO (80/20) com random_state=seed
+        # 2. Executar GridSearch → adicionar resultado (dataset, seed)
+        # 3. Executar RandomSearch → adicionar resultado (dataset, seed)
+        # 4. Executar BayesianOptimization → adicionar resultado (dataset, seed)
+```
+
+**Características:**
+- Train/test split **estratificado** (mantém proporção de classes)
+- Seed diferente em cada repetição (variabilidade estatística)
+- Verbose=False para outputs limpos
+- Barras de progresso TQDM (dataset externo, seeds interno)
+- Resultados consolidados em lista de dicts
+
+**Consolidação de Resultados:**
+- DataFrame pandas com 105 linhas (35 por método)
+- Colunas: dataset, seed, metodo, acuracia, precisao, recall, f1_score, tempo, best_params
+- Estatísticas descritivas por método (média, std)
+- 2 arquivos CSV salvos em `results/`:
+  - `experimento_rcbd_resultados.csv` (com best_params como dict)
+  - `experimento_rcbd_resultados_expandido.csv` (C e gamma em colunas separadas)
+
+**Saídas Geradas:**
+- DataFrame consolidado: `df_resultados`
+- Arquivo CSV: `results/experimento_rcbd_resultados.csv`
+- Arquivo CSV expandido: `results/experimento_rcbd_resultados_expandido.csv`
+- Estatísticas resumidas por método impressas no notebook
+
+---
+
 ## Status do Trabalho
 
 ### ✅ Concluído
@@ -259,17 +348,40 @@ Para validar os dados e obter métricas de referência, foi implementado um base
   - [x] Treinamento SVM básico
   - [x] Cálculo de métricas (Acurácia, Precisão, Recall, F1)
   - [x] Validação de que dados estão funcionando
+- [x] **Definir tratamentos:** 3 métodos de otimização de hiperparâmetros para SVM
+- [x] **Implementação das funções de otimização:**
+  - [x] GridSearch com grid 4×4
+  - [x] RandomSearch com 16 iterações
+  - [x] BayesianOptimization com 16 iterações
+  - [x] Todas com mesma interface e budget
+- [x] **Implementar experimento RCBD completo:**
+  - [x] Estrutura de loops aninhados (datasets × seeds × métodos)
+  - [x] 5 datasets × 7 seeds × 3 métodos = 105 experimentos
+  - [x] Train/test split estratificado com seeds diferentes
+  - [x] Barras de progresso TQDM
+- [x] **Coletar e consolidar resultados:**
+  - [x] DataFrame com 105 linhas
+  - [x] Estatísticas descritivas por método
+  - [x] Salvar em CSV (2 versões)
+
+### 🔄 Em Execução
+- [ ] **Executar experimento RCBD** (rodar os 105 experimentos - pode demorar!)
 
 ### 🔜 Próximos Passos
-- [ ] **Definir tratamentos** (ex: SVM linear, RBF, polynomial; ou diferentes algoritmos)
-- [ ] **Implementar experimento RCBD** (aplicar cada tratamento em cada bloco)
-- [ ] **Coletar resultados** (métricas de desempenho)
 - [ ] **Análise estatística:**
-  - [ ] ANOVA para RCBD
+  - [ ] ANOVA para RCBD (comparar métodos controlando por blocos)
   - [ ] Verificar pressupostos (normalidade, homocedasticidade)
-  - [ ] Testes post-hoc (se necessário)
-- [ ] **Conclusões e recomendações**
-- [ ] **Preparar apresentação final** (15 min)
+  - [ ] Testes post-hoc (Tukey, Bonferroni) se ANOVA indicar diferenças
+- [ ] **Visualizações:**
+  - [ ] Boxplots das métricas por método
+  - [ ] Gráficos de interação (método × dataset)
+  - [ ] Comparação de tempo de execução
+  - [ ] Análise dos hiperparâmetros escolhidos (C e gamma)
+- [ ] **Conclusões e recomendações:**
+  - [ ] Qual método teve melhor desempenho?
+  - [ ] Diferenças foram significativas?
+  - [ ] Trade-off entre desempenho e tempo
+- [ ] **Preparar apresentação final** (15 min, 09/12/2025)
 
 ---
 
@@ -360,6 +472,35 @@ Para validar os dados e obter métricas de referência, foi implementado um base
 ---
 
 ## Histórico de Mudanças
+
+### 25/11/2025 20:45 - Experimento RCBD Completo Implementado
+**Implementado:** Seções 9 e 10 no notebook `data_preprocessing.ipynb`.
+
+**Seção 9 - Otimização de Hiperparâmetros:**
+- 3 funções implementadas: `grid_search_svm()`, `random_search_svm()`, `bayesian_search_svm()`
+- Mesma interface: recebem X_train, y_train, X_test, y_test, n_iter, verbose
+- Mesma saída: dict com metodo, best_params, acuracia, precisao, recall, f1_score, tempo
+- GridSearch: grid 4×4 (16 combinações)
+- RandomSearch: 16 amostragens aleatórias
+- BayesianOptimization: 16 iterações com Gaussian Process
+- Parâmetro verbose para silenciar prints durante loops
+
+**Seção 10 - Experimento RCBD Completo:**
+- Estrutura de loops aninhados: 5 datasets × 7 seeds × 3 métodos = 105 experimentos
+- Dicionário de datasets organizando X e y
+- Seeds de 1 a 7 para repetições
+- Train/test split ESTRATIFICADO (80/20) mantendo proporção de classes
+- Barras de progresso TQDM (dataset externo, seeds interno)
+- Consolidação em DataFrame pandas
+- Salvamento em 2 arquivos CSV:
+  - `results/experimento_rcbd_resultados.csv`
+  - `results/experimento_rcbd_resultados_expandido.csv` (C e gamma separados)
+- Estatísticas descritivas por método impressas
+
+**Resultado:**
+- Código pronto para executar o experimento RCBD completo
+- Estrutura permite fácil análise posterior (ANOVA, visualizações)
+- Dados serão salvos automaticamente em CSV para análise estatística
 
 ### 25/11/2025 19:30 - Substituição: Stroke → Employee
 **Motivação:** Dataset Stroke tinha forte desbalanceamento (~5% eventos positivos), resultando em métricas baseline ruins e dificultando análise.
