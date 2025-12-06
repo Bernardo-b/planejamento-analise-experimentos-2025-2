@@ -364,18 +364,37 @@ for dataset in datasets (5):
   - [x] Estatísticas descritivas por método
   - [x] Salvar em CSV (2 versões)
 
+### ✅ Concluído (Continuação)
+- [x] **Criar notebook de análise de resultados** (`analise_resultados.ipynb`)
+  - [x] Carregamento do CSV com 105 experimentos
+  - [x] Scatter Plot: Tempo (log) vs Acurácia
+  - [x] BoxPlot: Distribuição de Acurácia por Método
+  - [x] BoxPlot: Tempo Computacional (escala log)
+  - [x] BoxPlot: Tempo Computacional (escala linear)
+  - [x] Resumo executivo com rankings
+- [x] **Criar script de análise estatística em R** (`src/analise_estatistica_acuracia.R`)
+  - [x] Carregamento e preparação (blocos = dataset_seed)
+  - [x] Modelo RCBD: aov(acuracia ~ metodo + bloco)
+  - [x] QQ-Plot dos resíduos (PNG)
+  - [x] Teste Shapiro-Wilk (normalidade)
+  - [x] Teste Fligner-Killeen (homocedasticidade)
+  - [x] Lógica condicional: ANOVA (normal) vs Friedman (não-normal)
+  - [x] Testes post-hoc: Tukey (normal) vs Wilcoxon+Bonferroni (não-normal)
+  - [x] Relatório em TXT com todas as análises
+- [x] **Criar script de análise estatística para TEMPO** (`src/analise_estatistica_tempo.R`)
+  - [x] Mesma estrutura que acurácia, variável = tempo
+  - [x] Modelo RCBD: aov(tempo ~ metodo + bloco)
+  - [x] QQ-Plot, testes de premissas, lógica condicional
+  - [x] Relatório em TXT com análise completa
+
 ### 🔄 Em Execução
-- [ ] **Executar experimento RCBD** (rodar os 105 experimentos - pode demorar!)
+- [ ] **Executar análise estatística:**
+  - [ ] Rodar script R para validar pressupostos
+  - [ ] Interpretar resultados dos testes
 
 ### 🔜 Próximos Passos
-- [ ] **Análise estatística:**
-  - [ ] ANOVA para RCBD (comparar métodos controlando por blocos)
-  - [ ] Verificar pressupostos (normalidade, homocedasticidade)
-  - [ ] Testes post-hoc (Tukey, Bonferroni) se ANOVA indicar diferenças
-- [ ] **Visualizações:**
-  - [ ] Boxplots das métricas por método
+- [ ] **Visualizações adicionais:**
   - [ ] Gráficos de interação (método × dataset)
-  - [ ] Comparação de tempo de execução
   - [ ] Análise dos hiperparâmetros escolhidos (C e gamma)
 - [ ] **Conclusões e recomendações:**
   - [ ] Qual método teve melhor desempenho?
@@ -472,6 +491,53 @@ for dataset in datasets (5):
 ---
 
 ## Histórico de Mudanças
+
+### 06/12/2025 - Scripts R de Análise Estatística para Acurácia e Tempo + Notebook de Análise
+**Criado:** Dois scripts R complementares para análise estatística RCBD.
+
+**Scripts Criados:**
+1. `src/analise_estatistica_acuracia.R` - Análise da variável acurácia
+2. `src/analise_estatistica_tempo.R` - Análise da variável tempo
+
+**Implementação dos Scripts R:**
+Ambos compartilham mesma estrutura:
+- Carregamento e preparação (blocos = dataset_seed)
+- Modelo RCBD: `aov(variavel ~ metodo + bloco)`
+- QQ-Plot dos resíduos (PNG)
+- Testes de premissas: Shapiro-Wilk e Fligner-Killeen
+- Lógica condicional baseada em normalidade dos resíduos
+- **Se Normal**: ANOVA paramétrica + Tukey HSD (se p < 0.05)
+- **Se Não-Normal**: Friedman + Wilcoxon pareado com Bonferroni (se p < 0.05)
+- Estatísticas descritivas por método
+- Saídas: PNG (gráfico) + TXT (relatório completo)
+
+**Diferenciais por Variável:**
+- **Acurácia**: Métrica de desempenho dos classificadores
+- **Tempo**: Custo computacional, distribuição típica assimétrica
+
+**Características Gerais:**
+- Scripts autocontidos, prontos para executar
+- Tratam corretamente blocos como combinações (dataset_seed)
+- Relatórios detalhados em arquivo TXT
+- Decisão automática entre testes paramétricos e não-paramétricos
+
+### 06/12/2025 - Notebook de Análise de Resultados Criado
+**Criado:** Notebook `notebooks/analise_resultados.ipynb` para visualização dos 105 experimentos RCBD.
+
+**Implementação:**
+- 7 células bem definidas (imports, exploração, 4 gráficos, resumo)
+- Scatter Plot: Tempo (log) vs Acurácia (diferenciado por método)
+- BoxPlot: Acurácia por Método
+- BoxPlot: Tempo Computacional (escala log)
+- BoxPlot: Tempo Computacional (escala linear)
+- Resumo executivo com rankings
+- Código conciso, cada gráfico em célula separada
+- Sem salvamento de imagens (apenas plt.show())
+
+**Resultado:**
+- Notebook pronto para exploração iterativa
+- Visualizações profissionais para apresentação
+- Análise rápida do trade-off tempo vs performance
 
 ### 25/11/2025 20:45 - Experimento RCBD Completo Implementado
 **Implementado:** Seções 9 e 10 no notebook `data_preprocessing.ipynb`.
@@ -573,3 +639,182 @@ for dataset in datasets (5):
 - Simplifica interpretação dos resultados
 - Mantém diversidade de complexidade e desafios
 - Facilita análise estatística (ANOVA) com mesma variável resposta
+
+---
+
+## Análise de Resultados (analise_resultados.ipynb)
+
+### Notebook: `notebooks/analise_resultados.ipynb`
+
+Notebook para visualizar e explorar os resultados do experimento RCBD com 105 experimentos.
+
+**Estrutura:**
+
+1. **Célula 1:** Imports e carregamento
+   - pandas, numpy, matplotlib, seaborn
+   - Carrega `../results/experimento_rcbd_resultados.csv`
+
+2. **Célula 2:** Exploração rápida
+   - Shape, métodos, datasets
+   - Estatísticas descritivas por método (média e std)
+
+3. **Célula 3:** Scatter Plot
+   - X: Tempo (escala logarítmica)
+   - Y: Acurácia
+   - Cores: Diferenciadas por método
+   - Título: "Trade-off: Tempo vs Acurácia"
+
+4. **Célula 4:** BoxPlot - Acurácia
+   - Distribuição de Acurácia para cada método
+   - Visualiza mediana, quartis e outliers
+
+5. **Célula 5:** BoxPlot - Tempo (escala log)
+   - Distribuição de Tempo Computacional
+   - Eixo Y em escala logarítmica
+   - Importante para visualizar diferenças grandes entre métodos
+
+6. **Célula 6:** BoxPlot - Tempo (escala linear)
+   - Mesma distribuição de tempo
+   - Sem escala logarítmica para comparação
+
+7. **Célula 7:** Resumo executivo
+   - Melhor acurácia geral
+   - Método mais rápido
+   - Ranking por acurácia média
+
+**Dados Analisados:**
+- 105 experimentos (5 datasets × 7 seeds × 3 métodos)
+- Métricas: acurácia, precisão, recall, f1_score, tempo
+- Métodos: GridSearch, RandomSearch, BayesianOptimization
+- Datasets: Breast Cancer, Titanic, Water Potability, Employee, Weather
+
+**Características:**
+- Código conciso (sem verbosidade desnecessária)
+- Cada gráfico em célula separada
+- Sem salvamento de imagens (apenas plt.show())
+- Paleta visual: seaborn whitegrid + Set2
+- Pronto para exploração iterativa
+
+---
+
+## Análise Estatística em R (analise_estatistica_acuracia.R)
+
+### Script: `src/analise_estatistica_acuracia.R`
+
+Script R autocontido que realiza análise estatística completa da acurácia em delineamento RCBD (Randomized Complete Block Design).
+
+**Estrutura do Script:**
+
+1. **Setup e Carregamento**
+   - Carrega `results/experimento_rcbd_resultados.csv`
+   - Cria coluna `bloco` = paste(dataset, seed, sep="_")
+   - Converte `metodo` e `bloco` para factor
+
+2. **Modelo RCBD**
+   - Ajusta: `aov(acuracia ~ metodo + bloco, data=df)`
+   - Modelo controla variabilidade entre blocos
+
+3. **Gráfico QQ-Plot**
+   - Salva em: `results/qqplot_acuracia.png`
+   - Visualiza normalidade dos resíduos
+
+4. **Testes de Premissas**
+   - **Shapiro-Wilk**: Testa normalidade dos resíduos
+   - **Fligner-Killeen**: Testa homocedasticidade entre métodos
+
+5. **Lógica Condicional (if/else)**
+   - **Se Normal (p > 0.05):**
+     - Executa ANOVA paramétrica: `summary(modelo)`
+     - Se metodo significativo (p < 0.05): Tukey HSD post-hoc
+   - **Se Não-Normal (p ≤ 0.05):**
+     - Executa Friedman test: `friedman.test(acuracia ~ metodo | bloco)`
+     - Se significativo: Wilcoxon pareado com correção Bonferroni
+
+6. **Estatísticas Descritivas**
+   - Resumo por método: média, mediana, sd, min, max
+
+7. **Saídas:**
+   - **Console**: Mensagens de progresso
+   - **Arquivo PNG**: `results/qqplot_acuracia.png` (QQ-Plot)
+   - **Arquivo TXT**: `results/relatorio_estatistico_acuracia.txt` (Relatório completo)
+
+**Definição de Bloco:**
+- Cada combinação de (dataset, seed) é um bloco único
+- Exemplo: "Breast Cancer_1", "Titanic_2", etc.
+- Total: 5 datasets × 7 seeds = 35 blocos
+
+**Delineamento:**
+- Blocos: 35 (5 datasets × 7 seeds)
+- Tratamentos: 3 (GridSearch, RandomSearch, BayesianOptimization)
+- Observações: 105 (35 × 3)
+
+**Como Executar:**
+```r
+source("src/analise_estatistica_acuracia.R")
+```
+
+Ou no terminal:
+```bash
+Rscript src/analise_estatistica_acuracia.R
+```
+
+---
+
+## Análise Estatística em R - Tempo (analise_estatistica_tempo.R)
+
+### Script: `src/analise_estatistica_tempo.R`
+
+Script R autocontido que realiza análise estatística completa da variável **tempo computacional** em delineamento RCBD.
+
+**Estrutura do Script:**
+
+Idêntica ao script de acurácia, substituindo `acuracia` por `tempo`:
+
+1. **Setup e Carregamento**
+   - Carrega `results/experimento_rcbd_resultados.csv`
+   - Cria coluna `bloco` = paste(dataset, seed, sep="_")
+   - Converte `metodo` e `bloco` para factor
+
+2. **Modelo RCBD**
+   - Ajusta: `aov(tempo ~ metodo + bloco, data=df)`
+   - Variável resposta: **tempo** em segundos
+
+3. **Gráfico QQ-Plot**
+   - Salva em: `results/qqplot_tempo.png`
+   - Visualiza normalidade dos resíduos
+
+4. **Testes de Premissas**
+   - **Shapiro-Wilk**: Normalidade dos resíduos
+   - **Fligner-Killeen**: Homocedasticidade entre métodos
+
+5. **Lógica Condicional (if/else)**
+   - **Se Normal (p > 0.05):**
+     - Executa ANOVA paramétrica: `summary(modelo)`
+     - Se metodo significativo (p < 0.05): Tukey HSD post-hoc
+   - **Se Não-Normal (p ≤ 0.05):**
+     - Executa Friedman test: `friedman.test(tempo ~ metodo | bloco)`
+     - Se significativo: Wilcoxon pareado com correção Bonferroni
+
+6. **Estatísticas Descritivas**
+   - Resumo por método: média, mediana, sd, min, max (em segundos)
+
+7. **Saídas:**
+   - **Console**: Mensagens de progresso
+   - **Arquivo PNG**: `results/qqplot_tempo.png` (QQ-Plot)
+   - **Arquivo TXT**: `results/relatorio_estatistico_tempo.txt` (Relatório)
+
+**Nota sobre Tempo:**
+- Variável típica com distribuição assimétrica positiva
+- Script detecta automaticamente via Shapiro-Wilk e aplica teste apropriado
+- Importante para avaliar custo computacional de cada método
+
+**Como Executar:**
+```r
+source("src/analise_estatistica_tempo.R")
+```
+
+Ou no terminal:
+```bash
+Rscript src/analise_estatistica_tempo.R
+```
+

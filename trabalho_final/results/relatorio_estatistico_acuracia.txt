@@ -1,0 +1,98 @@
+================================================================================
+RELATÓRIO DE ANÁLISE ESTATÍSTICA - ACURÁCIA (RCBD)
+================================================================================
+
+Dados Gerais:
+- Número de observações: 105 
+- Métodos: BayesianOptimization, GridSearch, RandomSearch 
+- Blocos (dataset_seed): 35 
+- Experimentos: 5 datasets × 7 seeds × 3 métodos = 105
+
+--------------------------------------------------------------------------------
+TESTE DE NORMALIDADE DOS RESÍDUOS (Shapiro-Wilk)
+--------------------------------------------------------------------------------
+
+	Shapiro-Wilk normality test
+
+data:  residuos
+W = 0.94325, p-value = 0.0002109
+
+
+--------------------------------------------------------------------------------
+TESTE DE HOMOCEDASTICIDADE (Fligner-Killeen)
+--------------------------------------------------------------------------------
+
+	Fligner-Killeen test of homogeneity of variances
+
+data:  acuracia by metodo
+Fligner-Killeen:med chi-squared = 0.11397, df = 2, p-value = 0.9446
+
+
+--------------------------------------------------------------------------------
+DECISÃO ESTATÍSTICA
+--------------------------------------------------------------------------------
+✗ Premissa de normalidade VIOLADA (p = 2e-04 )
+Aviso: Os dados não seguem distribuição normal.
+Procedimento: ANOVA Não-Paramétrica (Teste de Friedman)
+
+--------------------------------------------------------------------------------
+TESTE DE FRIEDMAN (ANOVA Não-Paramétrica com Blocos)
+--------------------------------------------------------------------------------
+
+	Friedman rank sum test
+
+data:  acuracia and metodo and bloco
+Friedman chi-squared = 8.6102, df = 2, p-value = 0.0135
+
+
+✓ Diferenças significativas entre métodos detectadas (p = 0.0135 )
+Executando teste POST-HOC: Wilcoxon Pareado com Bonferroni
+
+--------------------------------------------------------------------------------
+TESTE POST-HOC: WILCOXON PAREADO (com correção Bonferroni)
+--------------------------------------------------------------------------------
+
+	Pairwise comparisons using Wilcoxon signed rank test with continuity correction 
+
+data:  df$acuracia and df$metodo 
+
+             BayesianOptimization GridSearch
+GridSearch   0.281                -         
+RandomSearch 0.059                1.000     
+
+P value adjustment method: bonferroni 
+
+--------------------------------------------------------------------------------
+ESTATÍSTICAS DESCRITIVAS ENRIQUECIDAS POR MÉTODO
+--------------------------------------------------------------------------------
+
+TABELA RESUMIDA - Comparação com Baseline (GridSearch):
+
+               Método Mediana    IQR Diff_Absoluta Melhoria_Pct
+ BayesianOptimization  0.8539 0.0509        0.0064         0.76
+           GridSearch  0.8475 0.0499        0.0000         0.00
+         RandomSearch  0.8443 0.0456       -0.0032        -0.38
+
+
+TABELA COMPLETA - Todas as Estatísticas:
+
+               Método  N  Média Mediana     SD     Q1     Q3    IQR    Min
+ BayesianOptimization 35 0.8379  0.8539 0.0943 0.8128 0.8638 0.0509 0.6631
+           GridSearch 35 0.8366  0.8475 0.0952 0.8156 0.8655 0.0499 0.6494
+         RandomSearch 35 0.8336  0.8443 0.0983 0.8156 0.8613 0.0456 0.6479
+    Max Diff_Absoluta Melhoria_Pct
+ 0.9912        0.0064         0.76
+ 0.9912        0.0000         0.00
+ 0.9912       -0.0032        -0.38
+
+
+INTERPRETAÇÃO DAS COLUNAS:
+- Mediana: Valor central (robusto a outliers)
+- IQR: Intervalo Interquartil (mede consistência - menor é melhor)
+- Diff_Absoluta: Diferença da mediana em relação ao GridSearch
+- Melhoria_Pct: Percentual de melhoria/piora em relação ao GridSearch
+  Positivo = melhor que GridSearch | Negativo = pior que GridSearch
+
+================================================================================
+FIM DO RELATÓRIO
+================================================================================
